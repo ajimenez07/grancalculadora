@@ -84,18 +84,6 @@ CalcWindow::CalcWindow ()
       apply_css_to_window ();
 
       m_display->draw();
-      std::vector<Token> tks;
-      size_t last_pos;
-
-      std::string input = "10+2*5";
-      std::string result = lex (input, tks, last_pos);
-
-      std::cout << tks.size () << std::endl;
-
-      for (const Token &tk : tks)
-        std::cout << tk.value << std::endl;
-
-      std::cout << result << std::endl;
     });
   });
 }
