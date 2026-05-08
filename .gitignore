@@ -1,0 +1,26 @@
+# Autoconf
+Makefile
+Makefile.in
+configure
+config.status
+config.log
+autom4te.cache/
+
+# Compiled
+*.o
+*.exe
+gran_calculadora
+
+# Emacs backups
+*~
+\#*#
+
+# personal folder where i keep code i don't use anymore
+papelera
+
+# text lexer that probably will not be used.
+src/lexer.cc
+src/lexer.h
+
+# python venv where reuse is installed
+.venv
