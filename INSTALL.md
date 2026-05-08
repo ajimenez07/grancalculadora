@@ -6,7 +6,7 @@ using Autoconf:
 
 ```bash
 autoreconf -i
-./configure
+./configure CPPFLAGS="-DDEBUG"
 make
 ./gran_calculadora
 ```

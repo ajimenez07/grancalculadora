@@ -7,7 +7,6 @@
 
 #include <iostream>
 
-#include "lexer.h"
 
 CalcWindow::CalcWindow ()
 {
