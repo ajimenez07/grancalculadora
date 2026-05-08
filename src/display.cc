@@ -21,20 +21,28 @@ FractionElement::update_geometry ()
   numerator->update_geometry ();
   denominator->update_geometry ();
 
-  double width = (numerator->get_width () > denominator->get_width ())
-                     ? numerator->get_width ()
-                     : denominator->get_width ();
+  double den_total_width = denominator->get_width() + denominator->get_margin() * 2;
+  double num_total_width = numerator->get_width() + numerator->get_margin() * 2;
+  
+  double width = (den_total_width > num_total_width)
+                     ? den_total_width
+                     : num_total_width;
+
+
+  // calculate total height of the denominator and numerator boxes
+  double den_total_height = denominator->get_height() + denominator->get_margin() * 2;
+  double num_total_height = numerator->get_height() + numerator->get_margin() * 2;
 
   geometry.width = width;
-  geometry.height = numerator->get_height () + denominator->get_height ();
+  geometry.height = num_total_height + den_total_height;
 
   // set the Y position of denominator and numerator
-  denominator->geometry.y = geometry.y;
-  numerator->geometry.y = geometry.y + denominator->geometry.height;
+  numerator->geometry.y = den_total_height + numerator->get_margin ();
+  denominator->geometry.y = denominator->get_margin();
     
   // center the numerator and denominator
-  denominator->geometry.x = geometry.x + (width - denominator->geometry.width) / 2;
-  numerator->geometry.x = geometry.x + (width - numerator->geometry.height) / 2;  
+  denominator->geometry.x = (width - den_total_width) / 2 + denominator->get_margin();
+  numerator->geometry.x = (width - num_total_width) / 2 + numerator->get_margin();
 
 }
 
@@ -282,14 +290,7 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
 
       Element *el = expr->elements[i].get ();
       DrawGeometry g = el->geometry;
-
-      /* the Y axis is reversed */
-      /* to draw from the lower left corner, i pass 'g.height' as negative value 
-      cr->rectangle ((dx + g.x + g.margin),
-                     height - (dy + g.y + g.margin), g.width, -g.height);
-
-      cr->stroke ();
-      */
+      
       if (el->type == ElementType::FRACTION)
         {
           FractionElement *fe = dynamic_cast<FractionElement *> (el);
@@ -297,24 +298,26 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
           Expr *numerator = fe->numerator.get();
 
           double numerator_bottom = numerator->get_y() - numerator->get_margin();
+          double denominator_top = denominator->get_y() + denominator->get_height ()
+            + denominator->get_margin();
 
-          double denominator_top = denominator->get_y() + denominator->get_height() + denominator->get_margin();
-          double y = (numerator_bottom + denominator_top) / 2;
+          double y = (numerator_bottom + denominator_top) / 2 + fe->geometry.y + dy;
+          /*
+          double y = fe->geometry.y + fe->geometry.height / 2;
+          */
 
-
-          double width = fe->geometry.width;
-
-          cr->move_to(dx + fe->geometry.x, height - (dy + y));        
-          cr->line_to(dx + fe->geometry.x + width, height - (dy + y)); 
+          double margin = fe->geometry.margin;
+          cr->move_to(dx + fe->geometry.x + margin, height - y);        
+          cr->line_to(dx + fe->geometry.x + fe->geometry.width + margin, height  - y); 
           cr->stroke();  
           
           draw_rectangles (cr, denominator,
-                           dx+denominator->get_x (),
-                           dy+denominator->get_y (),
+                           dx+fe->geometry.x+margin+denominator->get_x (),
+                           dy+fe->geometry.y+margin+denominator->get_y (),
                            width, height);
           draw_rectangles (cr, numerator,
-                           dx+numerator->get_x (),
-                           dy+numerator->get_y (),
+                           dx+fe->geometry.x+margin+numerator->get_x (),
+                           dy+fe->geometry.y+margin+numerator->get_y (),
                            width, height);
         }
       else if (el->type == ElementType::ROOT)
@@ -341,10 +344,11 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
           Cairo::TextExtents extents;
 
           // calculate the position
+          
           cr->get_text_extents(text, extents);
 
-          double x = dx + se->geometry.x + g.margin + (g.width - extents.width) / 2 ;
-          double y = dy + se->geometry.y + g.margin + (g.height - extents.height) / 2;
+          double x = dx + se->geometry.x + (g.width - extents.width) / 2 ;
+          double y = dy + se->geometry.y + (g.height - extents.height) / 2;
 
           // show it
           cr->move_to(x, height - y);

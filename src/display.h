@@ -72,6 +72,11 @@ struct Element
      attributes of the element based on the new
      changes */
   virtual void update_geometry () {};
+
+  Element ()
+  {
+    geometry.margin = 5;
+  }
 };
 
 struct FractionElement : Element
@@ -86,6 +91,7 @@ struct FractionElement : Element
     denominator = std::make_unique<Expr> ();
 
     update_geometry ();
+
   }
 
   void update_geometry () override;
@@ -151,7 +157,7 @@ struct Expr
     for (size_t i = 0; i < elements.size (); i++)
       {
         Element *el = elements[i].get ();
-        width += el->geometry.width + el->geometry.margin;
+        width += el->geometry.width + el->geometry.margin * 2;
       }
 
     geometry.width = (width == 0) ? 10 : width;
@@ -173,43 +179,56 @@ struct Expr
     for (size_t i = 1; i < elements.size (); i++)
       {
         Element *el = elements[i].get ();
-        if (el->geometry.height + el->geometry.margin
-            > tallest->geometry.height + tallest->geometry.margin)
+        if (el->geometry.height + el->geometry.margin * 2
+            > tallest->geometry.height + tallest->geometry.margin * 2)
 
           tallest = el;
       }
 
-    geometry.height = (tallest->geometry.height == 0) ? 10 : tallest->geometry.height;
+    geometry.height = (tallest->geometry.height == 0) ? 10
+      : tallest->geometry.height + tallest->geometry.margin * 2;
   }
 
   /* update the geometry of all elements belonging
      to the expression. Remember that the position is always
      relative to the expression, is not absolute */
   void
-  update_elements_geometry ()
+  update_geometry ()
   {
+    // first, place the elements in the X axis. 
+    // Note: also update its geometry to take advantage
+    // of this iteration.
     double sep = 0;
     for (size_t i = 0; i < elements.size (); i++)
       {
 
         Element *el = elements[i].get ();
-        el->geometry.x = sep + el->geometry.margin;
-        el->geometry.y = el->geometry.margin;
-        sep += el->geometry.width;
-
+        // update geometry before doing numbers
         el->update_geometry ();
+        
+        el->geometry.x = sep + el->geometry.margin;
+        sep += el->geometry.width + el->geometry.margin;
       }
-  }
-  /* update the whole width and height and the position of each
-     element */
-  void
-  update_geometry ()
-  {
-    update_width ();
-    update_height ();
-    update_elements_geometry ();
-  }
 
+    // update_height calculates the necessary height for the expr to fit all elements.
+    update_height ();
+
+    // place the elements in the Y axis, aligning them in the center.
+    for (size_t i=0;i < elements.size ();i++)
+      {
+        Element *el = elements[i].get ();
+
+        // remember that elements position are always relative to their expression.
+        double y = (geometry.height - el->geometry.height) / 2 - el->geometry.margin;
+
+        el->geometry.y = y;
+      }
+
+    // finally, update also the width
+    update_width ();
+ 
+    
+  }
   Expr ()
   {
     geometry.width = 20;

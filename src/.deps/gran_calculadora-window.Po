@@ -1619,8 +1619,7 @@ src/gran_calculadora-window.o: src/window.cc /usr/include/stdc-predef.h \
  /usr/include/gtkmm-4.0/gtkmm/volumebutton.h \
  /usr/include/gtkmm-4.0/gtkmm/widgetpaintable.h \
  /usr/include/gtkmm-4.0/gtkmm/windowcontrols.h \
- /usr/include/gtkmm-4.0/gtkmm/windowhandle.h /usr/include/c++/14/iostream \
- src/lexer.h
+ /usr/include/gtkmm-4.0/gtkmm/windowhandle.h /usr/include/c++/14/iostream
 /usr/include/stdc-predef.h:
 src/window.h:
 src/colors.h:
@@ -3364,4 +3363,3 @@ src/display.h:
 /usr/include/gtkmm-4.0/gtkmm/windowcontrols.h:
 /usr/include/gtkmm-4.0/gtkmm/windowhandle.h:
 /usr/include/c++/14/iostream:
-src/lexer.h:

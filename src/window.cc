@@ -65,6 +65,14 @@ CalcWindow::CalcWindow ()
   m_display->insert_symbol('2');
   m_display->wrap_in_fraction_numerator ();
   m_display->insert_symbol('3');
+  m_display->insert_symbol('+');
+  m_display->insert_fraction();
+  m_display->insert_symbol('2');
+  m_display->insert_symbol('+');
+  m_display->insert_symbol('2');
+  m_display->wrap_in_fraction_numerator ();
+  m_display->insert_symbol('3');
+
 
   scrolledw.set_child (*m_display);
   scrolledw.set_policy (Gtk::PolicyType::AUTOMATIC,
