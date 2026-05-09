@@ -10,7 +10,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <cctype>
 
 #include <gtkmm.h>
 
@@ -34,8 +33,26 @@ struct DrawGeometry
 {
   double x = 0, y = 0;
   double width = 0, height = 0;
-  double margin = 0;
+  double marginX = 0, marginY = 0, margin = 0;
 
+  double
+  get_margin_X ()
+  {
+    if (marginX == 0)
+      return margin;
+
+    return marginX;
+  }
+
+  double
+  get_margin_Y ()
+  {
+    if (marginY == 0)
+      return margin;
+
+    return marginY;
+  }
+    
   void
   move_x (double dx)
   {
@@ -72,9 +89,12 @@ struct Element
   /* call this method to update the geometry
      attributes of the element based on the new
      changes */
-  virtual void update_geometry () {};
+  virtual void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) {(void) cr;}
 
-  
+  Element ()
+  {
+    
+  }
 };
 
 struct FractionElement : Element
@@ -88,12 +108,9 @@ struct FractionElement : Element
     numerator = std::make_unique<Expr> ();
     denominator = std::make_unique<Expr> ();
 
-    update_geometry ();
-
-    geometry.margin = 5;
   }
 
-  void update_geometry () override;
+  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
 };
 
 struct RootElement : Element
@@ -107,25 +124,31 @@ struct RootElement : Element
     index = std::make_unique<Expr> ();
     radicand = std::make_unique<Expr> ();
 
-    update_geometry ();
   }
 
-  void update_geometry () override;
+  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
+  
 };
 
 struct SymbolElement : Element
 {
   std::string symbol;
-
-  SymbolElement (std::string c) : symbol (c)
+  
+  static const int FONT_SIZE = 24;
+  
+  SymbolElement (Glib::ustring c) : symbol (c)
   {
     type = ElementType::SYMBOL;
-    geometry.width = 24 * c.size();
-    geometry.height = 24;
-    geometry.margin = (isdigit (c[0]) || c == "e" || c == "π") ? 0 : 5;
+    geometry.width = FONT_SIZE * c.size();
+    geometry.height = FONT_SIZE;
+    bool is_digit = (c.size() == 1 && c[0] >= '0' && c[0] <= '9');
 
-    
+    geometry.marginX = (is_digit || c == "e" || c == "π") ? 0 : 10;
   }
+
+  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
+  
+
 };
 
 struct Expr
@@ -159,7 +182,8 @@ struct Expr
     for (size_t i = 0; i < elements.size (); i++)
       {
         Element *el = elements[i].get ();
-        width += el->geometry.width + el->geometry.margin * 2;
+        
+        width += el->geometry.width + el->geometry.get_margin_X() * 2;
       }
 
     geometry.width = (width == 0) ? 10 : width;
@@ -181,21 +205,22 @@ struct Expr
     for (size_t i = 1; i < elements.size (); i++)
       {
         Element *el = elements[i].get ();
-        if (el->geometry.height + el->geometry.margin * 2
-            > tallest->geometry.height + tallest->geometry.margin * 2)
+        if (el->geometry.height + el->geometry.get_margin_Y() * 2
+            > tallest->geometry.height + tallest->geometry.get_margin_Y () * 2)
 
           tallest = el;
       }
 
     geometry.height = (tallest->geometry.height == 0) ? 10
-      : tallest->geometry.height + tallest->geometry.margin * 2;
+      : tallest->geometry.height + tallest->geometry.get_margin_Y () * 2;
   }
 
   /* update the geometry of all elements belonging
      to the expression. Remember that the position is always
-     relative to the expression, is not absolute */
+     relative to the expression, is not absolute.
+  */
   void
-  update_geometry ()
+  update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
   {
     // first, place the elements in the X axis. 
     // Note: also update its geometry to take advantage
@@ -206,10 +231,10 @@ struct Expr
 
         Element *el = elements[i].get ();
         // update geometry before doing numbers
-        el->update_geometry ();
+        el->update_geometry (cr);
         
-        el->geometry.x = sep + el->geometry.margin;
-        sep += el->geometry.width + el->geometry.margin;
+        el->geometry.x = sep + el->geometry.get_margin_X ();
+        sep += el->geometry.width + el->geometry.get_margin_X() * 2;
       }
 
     // update_height calculates the necessary height for the expr to fit all elements.
@@ -221,7 +246,7 @@ struct Expr
         Element *el = elements[i].get ();
 
         // remember that elements position are always relative to their expression.
-        double y = (geometry.height - el->geometry.height) / 2 - el->geometry.margin;
+        double y = (geometry.height - el->geometry.height) / 2 - el->geometry.get_margin_Y();
 
         el->geometry.y = y;
       }
@@ -282,7 +307,6 @@ public:
 
   void draw ()
   {
-    expr->update_geometry ();
     queue_draw();
   }
 

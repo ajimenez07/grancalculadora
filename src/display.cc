@@ -14,12 +14,12 @@ namespace GC
 using namespace DisplayAst;
 
 void
-FractionElement::update_geometry ()
+FractionElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
 {
 
   // before, update the numerator and denominator geometry.
-  numerator->update_geometry ();
-  denominator->update_geometry ();
+  numerator->update_geometry (cr);
+  denominator->update_geometry (cr);
 
   double den_total_width = denominator->get_width() + denominator->get_margin() * 2;
   double num_total_width = numerator->get_width() + numerator->get_margin() * 2;
@@ -47,8 +47,9 @@ FractionElement::update_geometry ()
 }
 
 void
-RootElement::update_geometry ()
+RootElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
 {
+  (void) cr;
   // 25px for drawing the root symbol
   double width = radicand->get_width () + index->get_width () + 25;
   double height = radicand->get_height () + index->get_height ();
@@ -63,6 +64,16 @@ RootElement::update_geometry ()
   radicand->geometry.y = geometry.y;
 }
 
+void
+SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
+{
+  Cairo::TextExtents extents;
+  cr->get_text_extents(symbol, extents);
+    
+  geometry.width = extents.width;
+  geometry.height = FONT_SIZE;
+}
+  
 static void
 insert_element (std::unique_ptr<Element> el, Cursor cursor)
 {
@@ -71,9 +82,6 @@ insert_element (std::unique_ptr<Element> el, Cursor cursor)
   std::cout << "EL: " << el.get() << std::endl;
 
   elements.insert (elements.begin () + cursor.idx, std::move (el));
-
-  cursor.expr->update_geometry ();
-
   
 }
 
@@ -308,23 +316,23 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
           double denominator_top = denominator->get_y() + denominator->get_height ()
             + denominator->get_margin();
 
-          double y = (numerator_bottom + denominator_top) / 2 + fe->geometry.y + dy;
-          /*
-          double y = fe->geometry.y + fe->geometry.height / 2;
-          */
 
-          double margin = fe->geometry.margin;
-          cr->move_to(dx + fe->geometry.x + margin, height - y);        
-          cr->line_to(dx + fe->geometry.x + fe->geometry.width + margin, height  - y); 
+          // note: don't apply margins. margins are always applied by the expression
+          // when calculating relative positions.
+          
+          double y = (numerator_bottom + denominator_top) / 2 + fe->geometry.y + dy;
+
+          cr->move_to(dx + fe->geometry.x, height - y);        
+          cr->line_to(dx + fe->geometry.x + fe->geometry.width, height  - y); 
           cr->stroke();  
           
           draw_rectangles (cr, denominator,
-                           dx+fe->geometry.x+margin+denominator->get_x (),
-                           dy+fe->geometry.y+margin+denominator->get_y (),
+                           dx+fe->geometry.x+denominator->get_x (),
+                           dy+fe->geometry.y+denominator->get_y (),
                            width, height);
           draw_rectangles (cr, numerator,
-                           dx+fe->geometry.x+margin+numerator->get_x (),
-                           dy+fe->geometry.y+margin+numerator->get_y (),
+                           dx+fe->geometry.x+numerator->get_x (),
+                           dy+fe->geometry.y+numerator->get_y (),
                            width, height);
         }
       else if (el->type == ElementType::ROOT)
@@ -349,13 +357,11 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
           Cairo::TextExtents extents;
 
           // calculate the position
-          
           cr->get_text_extents(se->symbol, extents);
-
-          double x = dx + se->geometry.margin +
-            se->geometry.x + (g.width - extents.width) / 2 ;
-          double y = dy + se->geometry.margin +
-            se->geometry.y + (g.height - extents.height) / 2;
+    
+          // don't apply margins, they are applied by the expression.
+          double x = dx + se->geometry.x + (g.width - extents.width) / 2;
+          double y = dy + se->geometry.y + (g.height - extents.height) / 2;
 
           // show it
           cr->move_to(x, height - y);
@@ -369,16 +375,22 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
   void
   Display::on_draw (const Cairo::RefPtr<Cairo::Context> &cr, int width, int height)
   {
+    
+    cr->set_line_width(2); 
+
+    // set font size
+    cr->set_font_size(SymbolElement::FONT_SIZE);
+    cr->select_font_face("Sans", Cairo::ToyFontFace::Slant::NORMAL, 
+                         Cairo::ToyFontFace::Weight::NORMAL);
+
+    // then update elements geometries
+    expr->update_geometry (cr);
+    
     cr->set_source_rgb(1, 1, 1);
     cr->rectangle(0, 0, width, height);
     cr->fill();
 
     cr->save();
-
-    cr->set_line_width(2); 
-    cr->set_font_size(24);
-    cr->select_font_face("Sans", Cairo::ToyFontFace::Slant::NORMAL, 
-                         Cairo::ToyFontFace::Weight::NORMAL);
 
 
     cr->set_source_rgb(0, 0, 0);
