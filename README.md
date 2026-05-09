@@ -1,6 +1,6 @@
 # Gran Calculadora (Great Calculator)
 
-> **Status**: Early development (~15% complete)  
+> **Status**: Early development (~25% complete)  
 > GUI is done, but in the future maybe more buttons are added (sin, cos, tan, etc.). Now the development is focused on the calculator display screen.
 
 Graphic calculator built with **GTKmm4**, **Cairo** and **C++** that supports fractions and roots in a more visual mode.
@@ -20,7 +20,7 @@ The development is centered now in the display rendering.
 - Keyboard input
 - Advanced functions as trigonometric functions or equation solver.
 - Tests
-  
+
 ## Technologies
 
 - **C++17** (smart pointers, modern features)
@@ -29,7 +29,9 @@ The development is centered now in the display rendering.
 - **Autoconf** (build system)
 
 ## License
+
 MIT - see COPYING
 
 ## Author
+
 Álex Jiménez <ajimenezba@edu.tecnocampus.cat>

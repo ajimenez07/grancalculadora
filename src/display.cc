@@ -73,15 +73,19 @@ insert_element (std::unique_ptr<Element> el, Cursor cursor)
   elements.insert (elements.begin () + cursor.idx, std::move (el));
 
   cursor.expr->update_geometry ();
+
+  
 }
 
 /* insert a symbol (number, parenthesis or an operator) */
 void
-Display::insert_symbol (char s)
+Display::insert_symbol (std::string s)
 {
   auto se = std::make_unique<SymbolElement> (s);
   insert_element (std::move (se), cursor);
   cursor.idx++;
+
+  draw();
 }
 
 /* insert a root and set the cursor into its radicand */
@@ -100,6 +104,7 @@ Display::insert_root ()
   cursor.data.in_radicand = true;
   cursor.idx = 0;
 
+  draw();
 
 }
 
@@ -117,6 +122,8 @@ void Display::insert_fraction ()
   cursor.expr = fe_ptr->denominator.get();
   cursor.data.in_numerator = false;
   cursor.idx = 0;
+
+  draw();
 }
 
 /* go to the current fraction denominator */
@@ -339,20 +346,20 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
         {
           SymbolElement *se = dynamic_cast<SymbolElement *> (el);
 
-          // get the text in std::string
-          std::string text(1, se->symbol);
           Cairo::TextExtents extents;
 
           // calculate the position
           
-          cr->get_text_extents(text, extents);
+          cr->get_text_extents(se->symbol, extents);
 
-          double x = dx + se->geometry.x + (g.width - extents.width) / 2 ;
-          double y = dy + se->geometry.y + (g.height - extents.height) / 2;
+          double x = dx + se->geometry.margin +
+            se->geometry.x + (g.width - extents.width) / 2 ;
+          double y = dy + se->geometry.margin +
+            se->geometry.y + (g.height - extents.height) / 2;
 
           // show it
           cr->move_to(x, height - y);
-          cr->show_text(text);
+          cr->show_text(se->symbol);
         }
     }
 

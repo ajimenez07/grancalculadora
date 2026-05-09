@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cctype>
 
 #include <gtkmm.h>
 
@@ -73,10 +74,7 @@ struct Element
      changes */
   virtual void update_geometry () {};
 
-  Element ()
-  {
-    geometry.margin = 5;
-  }
+  
 };
 
 struct FractionElement : Element
@@ -92,6 +90,7 @@ struct FractionElement : Element
 
     update_geometry ();
 
+    geometry.margin = 5;
   }
 
   void update_geometry () override;
@@ -116,13 +115,16 @@ struct RootElement : Element
 
 struct SymbolElement : Element
 {
-  char symbol;
+  std::string symbol;
 
-  SymbolElement (char c) : symbol (c)
+  SymbolElement (std::string c) : symbol (c)
   {
     type = ElementType::SYMBOL;
-    geometry.width = 24;
+    geometry.width = 24 * c.size();
     geometry.height = 24;
+    geometry.margin = (isdigit (c[0]) || c == "e" || c == "π") ? 0 : 5;
+
+    
   }
 };
 
@@ -267,7 +269,7 @@ public:
   void move_up ();
   void move_down ();
 
-  void insert_symbol (char n);
+  void insert_symbol (std::string n);
   void insert_root ();
   void insert_fraction ();
 
