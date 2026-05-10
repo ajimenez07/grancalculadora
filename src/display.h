@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <stack>
 
 #include <gtkmm.h>
 
@@ -265,10 +266,15 @@ struct Expr
 
 struct Cursor
 {
-  Expr *expr;
-  
-  Expr *parent = nullptr;
-  size_t element_parent_idx = 0;
+  Expr *expr = nullptr;
+
+  /* stack with the parent, the parent of the parent,
+     the parent of the parent of the parent, and so on.
+     Being the parent the expr containing with an intermediary
+    (root radicand/index or fraction numerator/denominator) the
+  cursor expr. The size_t is the index of the current element in the expr*/
+  std::stack<std::pair<Expr *, size_t>> parents;
+
   union
   {
     // in case we are in the radicand of a root, if not, we are in the index
@@ -281,7 +287,7 @@ struct Cursor
   } data;
 
   // index of the current element
-  size_t idx;
+  size_t idx = 0;
 };
 
 };
@@ -303,8 +309,11 @@ public:
   void wrap_in_root_index ();
   void wrap_in_root_radicand ();
   void enter_root ();
-  void enter_fraction ();
+  void enter_fraction_right ();
+  void enter_fraction_left ();
 
+  void erase ();
+  
   void draw ()
   {
     queue_draw();
@@ -325,6 +334,9 @@ protected:
 private:
   DisplayAst::Cursor cursor;
   std::unique_ptr<DisplayAst::Expr> expr;
+
+  void
+  move_to_element ();
 };
 }
 #endif

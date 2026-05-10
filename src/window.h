@@ -87,7 +87,7 @@ private:
 
   void
   add_control_button (const Glib::ustring text, int col, int row, int width,
-                      int height, const GC::Color color)
+                      int height, const GC::Color color, std::function<void()> callback)
   {
     auto btn = Gtk::make_managed<Gtk::Button>(text);
 
@@ -114,7 +114,12 @@ private:
     
     /* add to the grid */
     m_controls_grid.attach (*btn, col, row, width, height);
+
+    // add event handler
+    if (callback) 
+      btn->signal_clicked().connect(callback);
     
+
   }
                      
   /*

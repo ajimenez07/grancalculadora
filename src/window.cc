@@ -18,10 +18,14 @@ CalcWindow::CalcWindow ()
   m_controls_grid.set_halign(Gtk::Align::CENTER);
 
   
-  add_control_button ("^", 1, 0, 1, 1, GREEN);
-  add_control_button ("<", 0, 1, 1, 1, GREEN);
-  add_control_button (">", 3, 1, 1, 1, GREEN);
-  add_control_button ("v", 1, 4, 1, 1, GREEN);
+  add_control_button ("^", 1, 0, 1, 1, GREEN, nullptr);
+  add_control_button ("<", 0, 1, 1, 1, GREEN, [this]() {
+    m_display->move_left ();
+  });
+  add_control_button (">", 3, 1, 1, 1, GREEN, [this]() {
+    m_display->move_right ();
+  });
+  add_control_button ("v", 1, 4, 1, 1, GREEN, nullptr);
 
   
   // configure buttons grid
@@ -81,7 +85,9 @@ CalcWindow::CalcWindow ()
   grid_add_button ("3", 2, 3, NAVY_BLUE, [this]() {
     m_display->insert_symbol("3");
   });
-  grid_add_button ("x²", 3, 3, LIGHT_BLUE, nullptr);
+  grid_add_button ("⌫", 3, 3, LIGHT_BLUE, [this]() {
+    m_display->erase ();
+  });
   grid_add_button ("%", 4, 3, LIGHT_BLUE, nullptr);
 
   grid_add_button ("0", 0, 4, NAVY_BLUE, [this]() {

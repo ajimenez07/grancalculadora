@@ -299,8 +299,10 @@ src/gran_calculadora-window.o: src/window.cc /usr/include/stdc-predef.h \
  /usr/include/c++/14/pstl/execution_defs.h /usr/include/c++/14/vector \
  /usr/include/c++/14/bits/stl_vector.h \
  /usr/include/c++/14/bits/stl_bvector.h \
- /usr/include/c++/14/bits/vector.tcc /usr/include/gtkmm-4.0/gtkmm.h \
- /usr/include/glibmm-2.68/glibmm.h \
+ /usr/include/c++/14/bits/vector.tcc /usr/include/c++/14/stack \
+ /usr/include/c++/14/deque /usr/include/c++/14/bits/stl_deque.h \
+ /usr/include/c++/14/bits/deque.tcc /usr/include/c++/14/bits/stl_stack.h \
+ /usr/include/gtkmm-4.0/gtkmm.h /usr/include/glibmm-2.68/glibmm.h \
  /usr/include/glibmm-2.68/glibmm/base64.h \
  /usr/include/glibmm-2.68/glibmm/binding.h \
  /usr/include/glibmm-2.68/glibmm/object.h \
@@ -404,9 +406,7 @@ src/gran_calculadora-window.o: src/window.cc /usr/include/stdc-predef.h \
  /usr/include/c++/14/bits/stl_tree.h /usr/include/c++/14/bits/stl_map.h \
  /usr/include/c++/14/bits/stl_multimap.h \
  /usr/include/glibmm-2.68/glibmm/variant_basictypes.h \
- /usr/include/c++/14/deque /usr/include/c++/14/bits/stl_deque.h \
- /usr/include/c++/14/bits/deque.tcc /usr/include/c++/14/optional \
- /usr/include/glibmm-2.68/glibmm/bytearray.h \
+ /usr/include/c++/14/optional /usr/include/glibmm-2.68/glibmm/bytearray.h \
  /usr/include/sigc++-3.0/sigc++/slot.h \
  /usr/include/glibmm-2.68/glibmm/bytes.h \
  /usr/include/glibmm-2.68/glibmm/checksum.h \
@@ -427,8 +427,7 @@ src/gran_calculadora-window.o: src/window.cc /usr/include/stdc-predef.h \
  /usr/include/glibmm-2.68/glibmm/markup.h \
  /usr/include/glibmm-2.68/glibmm/miscutils.h \
  /usr/include/glibmm-2.68/glibmm/module.h \
- /usr/include/glibmm-2.68/glibmm/nodetree.h /usr/include/c++/14/stack \
- /usr/include/c++/14/bits/stl_stack.h \
+ /usr/include/glibmm-2.68/glibmm/nodetree.h \
  /usr/include/sigc++-3.0/sigc++/bind.h \
  /usr/include/glibmm-2.68/glibmm/optioncontext.h \
  /usr/include/glibmm-2.68/glibmm/optionentry.h \
@@ -1990,6 +1989,11 @@ src/display.h:
 /usr/include/c++/14/bits/stl_vector.h:
 /usr/include/c++/14/bits/stl_bvector.h:
 /usr/include/c++/14/bits/vector.tcc:
+/usr/include/c++/14/stack:
+/usr/include/c++/14/deque:
+/usr/include/c++/14/bits/stl_deque.h:
+/usr/include/c++/14/bits/deque.tcc:
+/usr/include/c++/14/bits/stl_stack.h:
 /usr/include/gtkmm-4.0/gtkmm.h:
 /usr/include/glibmm-2.68/glibmm.h:
 /usr/include/glibmm-2.68/glibmm/base64.h:
@@ -2102,9 +2106,6 @@ src/display.h:
 /usr/include/c++/14/bits/stl_map.h:
 /usr/include/c++/14/bits/stl_multimap.h:
 /usr/include/glibmm-2.68/glibmm/variant_basictypes.h:
-/usr/include/c++/14/deque:
-/usr/include/c++/14/bits/stl_deque.h:
-/usr/include/c++/14/bits/deque.tcc:
 /usr/include/c++/14/optional:
 /usr/include/glibmm-2.68/glibmm/bytearray.h:
 /usr/include/sigc++-3.0/sigc++/slot.h:
@@ -2130,8 +2131,6 @@ src/display.h:
 /usr/include/glibmm-2.68/glibmm/miscutils.h:
 /usr/include/glibmm-2.68/glibmm/module.h:
 /usr/include/glibmm-2.68/glibmm/nodetree.h:
-/usr/include/c++/14/stack:
-/usr/include/c++/14/bits/stl_stack.h:
 /usr/include/sigc++-3.0/sigc++/bind.h:
 /usr/include/glibmm-2.68/glibmm/optioncontext.h:
 /usr/include/glibmm-2.68/glibmm/optionentry.h:

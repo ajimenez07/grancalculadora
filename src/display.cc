@@ -8,6 +8,8 @@
 #include <iostream>
 #endif
 
+#include <algorithm>
+
 namespace GC
 {
 
@@ -74,12 +76,115 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
   geometry.height = FONT_SIZE;
 }
   
+  void Display::move_left()
+{
+  // case 1: leave parent
+  if (cursor.idx == 0 && !cursor.parents.empty())
+    {
+      auto [parent, idx] = cursor.parents.top();          
+      auto el = parent->elements[idx].get();
+      // if we are in a fraction, for the user is more comfortable
+      // to wrap into the numerator (if we are in the denominator) instead
+      // of leaving the whole fraction.
+      if (el->type == ElementType::FRACTION)
+        {
+          FractionElement *fe = dynamic_cast<FractionElement *>(fe);
+          if (!cursor.data.in_numerator)
+            {
+              wrap_in_fraction_numerator();
+              draw();
+              return;
+            }
+        }
+      cursor.expr = parent;
+
+      // check boundaries
+      if (idx <= cursor.expr->elements.size()) 
+        cursor.idx = idx;
+      else 
+        cursor.idx = cursor.expr->elements.size();
+    
+      cursor.parents.pop();
+      draw();
+      return;
+    }
+
+  // case 2: moving in the same expression
+  if (cursor.idx > 0)
+    {
+    auto el = cursor.expr->elements[cursor.idx - 1].get();
+        
+    if (el->type == ElementType::FRACTION) 
+      enter_fraction_left();  
+    else if (el->type == ElementType::ROOT) 
+      enter_root();
+    else 
+      cursor.idx--;  
+    }
+    
+  draw();
+    
+}
+  void Display::move_right()
+  {
+    // case 1: leave parent
+    if (cursor.idx >= cursor.expr->elements.size() && !cursor.parents.empty())
+      {
+        
+        auto [parent, idx] = cursor.parents.top();
+        auto el = parent->elements[idx].get();
+
+        // do the same as we do in move_left but into the last element of the numerator
+        // see 'Display::move_left' comments.
+        if (el->type == ElementType::FRACTION)
+          {
+            FractionElement *fe = dynamic_cast<FractionElement *>(fe);
+            if (!cursor.data.in_numerator)
+              {
+                wrap_in_fraction_numerator();
+                // 'wrap_in_fraction_numerator' sets the idx to 0,
+                // but if we move to right, we want to go the last element
+                // of the numerator
+                cursor.idx = cursor.expr->elements.size();
+                draw();
+                return;
+              }
+          }
+        cursor.expr = parent;
+          // check boundaries
+        if (idx + 1 <= cursor.expr->elements.size()) 
+          cursor.idx = idx + 1;
+        else 
+          cursor.idx = cursor.expr->elements.size(); 
+
+        cursor.parents.pop();
+        draw();
+        return;
+      }
+
+    // case 2: moving in the same expression.
+    if (cursor.idx < cursor.expr->elements.size())
+      {
+        auto el = cursor.expr->elements[cursor.idx].get();
+        
+        if (el->type == ElementType::FRACTION) 
+          enter_fraction_right();  
+        else if (el->type == ElementType::ROOT) 
+          enter_root();      
+        else  
+          cursor.idx++;  
+        
+    }
+    
+    draw();
+  }
+
+  
+  
 static void
 insert_element (std::unique_ptr<Element> el, Cursor cursor)
 {
   auto &elements = cursor.expr->elements;
-  std::cout << "IDX: " << cursor.idx << std::endl;
-  std::cout << "EL: " << el.get() << std::endl;
 
   elements.insert (elements.begin () + cursor.idx, std::move (el));
   
@@ -106,8 +211,7 @@ Display::insert_root ()
   auto *re_ptr = re.get();
   insert_element (std::move (re), cursor);
 
-  cursor.parent = cursor.expr;
-  cursor.element_parent_idx = cursor.idx;
+  cursor.parents.push({cursor.expr, cursor.idx});
   cursor.expr = re_ptr->radicand.get();
   cursor.data.in_radicand = true;
   cursor.idx = 0;
@@ -125,8 +229,8 @@ void Display::insert_fraction ()
   auto *fe_ptr = fe.get();
   insert_element(std::move(fe), cursor);
 
-  cursor.parent = cursor.expr;
-  cursor.element_parent_idx = cursor.idx;
+  
+  cursor.parents.push({cursor.expr, cursor.idx});;
   cursor.expr = fe_ptr->denominator.get();
   cursor.data.in_numerator = false;
   cursor.idx = 0;
@@ -138,18 +242,20 @@ void Display::insert_fraction ()
 void
 Display::wrap_in_fraction_denominator ()
 {
+  
   // if we are in a fraction, we are in a nested expression
-  if (cursor.parent == nullptr)
+  if (cursor.parents.empty())
     return;
   
   // get the fraction itself
-  auto &elements = cursor.parent->elements;
-  if (elements.size() == 0)
+  auto [parent, idx] = cursor.parents.top();
+  auto &elements = parent->elements;
+  if (idx >= elements.size())
     return;
+  
+  auto el = elements[idx].get ();
 
-  
-  auto el = elements[cursor.element_parent_idx].get ();
-  
+  // check we are really in a fraction
   if (el->type != ElementType::FRACTION)
     return;
 
@@ -164,21 +270,22 @@ Display::wrap_in_fraction_denominator ()
 void
 Display::wrap_in_fraction_numerator ()
 {
-  // if we are in a fraction, we are in a nested expression (probably,
-  // the denominator)
-  if (cursor.parent == nullptr)
+  // if we are in a fraction, we are in a nested expression
+  if (cursor.parents.empty())
     return;
   
   // get the fraction itself
-  auto &elements = cursor.parent->elements;
-  if (elements.size() == 0)
+  auto [parent, idx] = cursor.parents.top();
+  auto &elements = parent->elements;
+  if (idx >= elements.size())
     return;
+  
+  auto el = elements[idx].get ();
 
-  auto el = elements[cursor.element_parent_idx].get ();
-
-  // check it is really a fraction
+  // check we are really in a fraction
   if (el->type != ElementType::FRACTION)
     return;
+
 
   FractionElement *fe = dynamic_cast<FractionElement *> (el);
 
@@ -191,21 +298,24 @@ Display::wrap_in_fraction_numerator ()
 void
 Display::wrap_in_root_index ()
 {
-  // the root, as the fraction, is an element in a expression and the index/radicand
-  // are expressions in the root. So, the root must be in cursor.parent
-  if (cursor.parent == nullptr)
+  // if we are in a root, like the fraction, we are in a nested expression
+  if (cursor.parents.empty())
     return;
   
   // get the root itself
-  auto &elements = cursor.parent->elements;
+  auto pair = cursor.parents.top();
+  auto parent = pair.first;
+  auto idx = pair.second;
+  auto &elements = parent->elements;
   if (elements.size() == 0)
     return;
-
   
-  auto el = elements[cursor.element_parent_idx].get ();
+  auto el = elements[idx].get ();
 
+  // check we are really in a root
   if (el->type != ElementType::ROOT)
     return;
+
 
   RootElement *re = dynamic_cast<RootElement *> (el);
 
@@ -218,21 +328,24 @@ Display::wrap_in_root_index ()
 void
 Display::wrap_in_root_radicand ()
 {
-  // the root, as the fraction, is an element in a expression and the index/radicand
-  // are expressions in the root. So, the root must be in cursor.parent
-  if (cursor.parent == nullptr)
+  // if we are in a root, like the fraction, we are in a nested expression
+  if (cursor.parents.empty())
     return;
   
   // get the root itself
-  auto &elements = cursor.parent->elements;
+  auto pair = cursor.parents.top();
+  auto parent = pair.first;
+  auto idx = pair.second;
+  auto &elements = parent->elements;
   if (elements.size() == 0)
     return;
-
   
-  auto el = elements[cursor.element_parent_idx].get ();
+  auto el = elements[idx].get ();
 
+  // check we are really in a root
   if (el->type != ElementType::ROOT)
     return;
+
 
   RootElement *re = dynamic_cast<RootElement *> (el);
 
@@ -241,7 +354,7 @@ Display::wrap_in_root_radicand ()
   cursor.idx = 0;
 }
 
-/* go the following element if it is a root. It will enter
+/* go the current element if it is a root. It will enter
    into the radicand*/
 void
 Display::enter_root ()
@@ -249,17 +362,17 @@ Display::enter_root ()
   Expr *expr = cursor.expr;
   auto &elements = expr->elements;
 
-  if (cursor.idx >= elements.size ())
+  if (cursor.idx <= 0 || cursor.idx > elements.size ())
     return;
 
-  auto el = elements[cursor.idx].get ();
+  auto el = elements[cursor.idx - 1].get ();
   if (el->type != ElementType::ROOT)
     return;
 
   RootElement *re = dynamic_cast<RootElement *>(el);
   
-  cursor.parent = cursor.expr;
-  cursor.element_parent_idx = cursor.idx;
+  
+  cursor.parents.push({cursor.expr, cursor.idx});;
   cursor.expr = re->radicand.get();
   cursor.data.in_radicand = true;
   cursor.idx = 0;
@@ -267,10 +380,42 @@ Display::enter_root ()
 
 }
 
-/* go the following element if it is a fraction. It will enter
+static void
+enter_fraction(FractionElement *fe, Cursor &cursor)
+{
+  cursor.parents.push({cursor.expr, cursor.idx});
+  cursor.expr = fe->denominator.get();
+  cursor.data.in_numerator = false;
+  cursor.idx = 0;  
+}
+  
+/* go the previous element if it is a fraction. It will enter
    into the denominator */
 void
-Display::enter_fraction ()
+Display::enter_fraction_left ()
+{
+  Expr *expr = cursor.expr;
+  auto &elements = expr->elements;
+
+  if (cursor.idx <= 0 || elements.size() == 0)
+    return;
+
+  auto el = elements[cursor.idx - 1].get ();
+  if (el->type != ElementType::FRACTION)
+    return;
+
+  FractionElement *fe = dynamic_cast<FractionElement *>(el);
+
+  if (cursor.idx > 0)
+    cursor.idx--;
+  
+  enter_fraction (fe, cursor);
+}
+
+/* go the next element if it is a fraction. It will enter
+   into the denominator */
+void
+Display::enter_fraction_right ()
 {
   Expr *expr = cursor.expr;
   auto &elements = expr->elements;
@@ -278,34 +423,82 @@ Display::enter_fraction ()
   if (cursor.idx >= elements.size ())
     return;
 
+ 
   auto el = elements[cursor.idx].get ();
   if (el->type != ElementType::FRACTION)
     return;
 
-
   FractionElement *fe = dynamic_cast<FractionElement *>(el);
+  if (cursor.idx + 1 < elements.size())
+    cursor.idx++;
   
-  cursor.parent = cursor.expr;
-  cursor.element_parent_idx = cursor.idx;
-  cursor.expr = fe->denominator.get();
-  cursor.data.in_numerator = false;
-  cursor.idx = 0;
+  enter_fraction (fe, cursor);
+}
 
 
+
+
+void
+Display::erase ()
+{
+  // if cursor.idx == 0, then there is no element.
+  if (cursor.idx == 0)
+    return;
+
+  // erase the element
+  auto &elements = cursor.expr->elements;
+  elements.erase (elements.begin() + cursor.idx - 1);
+  // important: update the cursor.
+  cursor.idx--;
   
+  // update
+  draw();
 }
 
 void
-draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
-                 double dx, double dy, int width, int height)
+draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
+                 double dx, double dy, int width, int height, Cursor cursor)
 {
-  
+
+  // draw cursor
+  if (expr == cursor.expr && cursor.idx > 0)
+    {
+
+      // get the element which the cursor points to      
+      Element *el = expr->elements[cursor.idx - 1].get ();
+      
+      // calculate its absolute position. Note that dx and dy already
+      // includes the parent expression and the parent element positions.
+      double x = dx +
+        el->geometry.x + el->geometry.width;
+
+      double y = dy +
+        el->geometry.y;
+
+      // draw the line
+      cr->move_to(x, height - y);        
+      cr->line_to(x, height - (y + el->geometry.height)); 
+      cr->stroke();  
+    }
+  // if it is the first element
+  else if (expr == cursor.expr)
+    {
+      double x = dx;
+      double y = dy;
+
+      // take the symbol height as a reference
+      cr->move_to(x, height - y);        
+      cr->line_to(x, height - (y + SymbolElement::FONT_SIZE)); 
+      cr->stroke(); 
+ 
+    }
+  // draw elements
   for (size_t i = 0; i < expr->elements.size (); i++)
     {
 
       Element *el = expr->elements[i].get ();
       DrawGeometry g = el->geometry;
-      
+
       if (el->type == ElementType::FRACTION)
         {
           FractionElement *fe = dynamic_cast<FractionElement *> (el);
@@ -326,14 +519,14 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
           cr->line_to(dx + fe->geometry.x + fe->geometry.width, height  - y); 
           cr->stroke();  
           
-          draw_rectangles (cr, denominator,
+          draw_elements (cr, denominator,
                            dx+fe->geometry.x+denominator->get_x (),
                            dy+fe->geometry.y+denominator->get_y (),
-                           width, height);
-          draw_rectangles (cr, numerator,
+                           width, height, cursor);
+          draw_elements (cr, numerator,
                            dx+fe->geometry.x+numerator->get_x (),
                            dy+fe->geometry.y+numerator->get_y (),
-                           width, height);
+                           width, height, cursor);
         }
       else if (el->type == ElementType::ROOT)
         {
@@ -341,14 +534,14 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
           Expr *radicand = re->radicand.get();
           Expr *index = re->index.get();
 
-          draw_rectangles (cr, radicand,
+          draw_elements (cr, radicand,
                            dx+radicand->get_x(),
                            dy+radicand->get_y(),
-                           width, height);
-          draw_rectangles (cr, index,
+                           width, height, cursor);
+          draw_elements (cr, index,
                            dx+index->get_x(),
                            dy+index->get_y(),
-                           width, height);
+                           width, height, cursor);
         }
       else if (el->type == ElementType::SYMBOL)
         {
@@ -369,7 +562,6 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
         }
     }
 
-  std::cout << "hello" << std::endl;
 }
 
   void
@@ -394,9 +586,9 @@ draw_rectangles (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
 
 
     cr->set_source_rgb(0, 0, 0);
-    draw_rectangles(cr, expr.get(), 0, 0, width, height);
+    draw_elements(cr, expr.get(), 0, 0, width, height, cursor);
 
-
+    
   }
 
 }
