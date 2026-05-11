@@ -5,7 +5,7 @@
 
 Graphic calculator built with **GTKmm4**, **Cairo** and **C++** that supports fractions and roots in a more visual mode.
 
-![Calculator demo](screenshots/calculator.gif){: width="400px"}
+<img src="screenshots/calculator.gif" alt="Calculator demo" width="400">
 
 
 ## What have been done
