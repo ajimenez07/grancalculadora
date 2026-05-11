@@ -98,31 +98,26 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
         }
       cursor.expr = parent;
 
-      // check boundaries
-      if (idx <= cursor.expr->elements.size()) 
-        cursor.idx = idx;
-      else 
-        cursor.idx = cursor.expr->elements.size();
+      cursor.idx = idx;
     
       cursor.parents.pop();
       draw();
       return;
     }
-
-  // case 2: moving in the same expression
-  if (cursor.idx > 0)
+  // case 2: moving in the same expr.
+  if (cursor.idx <= cursor.expr->elements.size() && cursor.idx > 0)
     {
-    auto el = cursor.expr->elements[cursor.idx - 1].get();
-        
-    if (el->type == ElementType::FRACTION) 
-      enter_fraction_left();  
-    else if (el->type == ElementType::ROOT) 
-      enter_root();
-    else 
-      cursor.idx--;  
+      auto el = cursor.expr->elements[cursor.idx - 1].get();
+      // enter directly to the element  
+      if (el->type == ElementType::FRACTION) 
+        enter_fraction_left();  
+      else if (el->type == ElementType::ROOT) 
+        enter_root();
+      else 
+        cursor.idx--;  
+
+      draw();
     }
-    
-  draw();
     
 }
   void Display::move_right()
@@ -460,28 +455,13 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
                  double dx, double dy, int width, int height, Cursor cursor)
 {
 
-  // draw cursor
-  if (expr == cursor.expr && cursor.idx > 0)
-    {
+  // don't draw cursor if it is not the moment
+  if (expr != cursor.expr)
+    goto draw_elements;
 
-      // get the element which the cursor points to      
-      Element *el = expr->elements[cursor.idx - 1].get ();
-      
-      // calculate its absolute position. Note that dx and dy already
-      // includes the parent expression and the parent element positions.
-      double x = dx +
-        el->geometry.x + el->geometry.width;
 
-      double y = dy +
-        el->geometry.y;
-
-      // draw the line
-      cr->move_to(x, height - y);        
-      cr->line_to(x, height - (y + el->geometry.height)); 
-      cr->stroke();  
-    }
-  // if it is the first element
-  else if (expr == cursor.expr)
+  
+  if (cursor.expr->elements.size() == 0) // take symbol height as a reference in case there are no elements
     {
       double x = dx;
       double y = dy;
@@ -489,9 +469,49 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
       // take the symbol height as a reference
       cr->move_to(x, height - y);        
       cr->line_to(x, height - (y + SymbolElement::FONT_SIZE)); 
-      cr->stroke(); 
- 
+      cr->stroke();
     }
+  // we have elements
+  else
+    {
+      Element *reference;
+
+      // provisional enum to indicate if we have to trace the left side or the right side
+      enum class Where {LEFT, RIGHT};
+      Where where = Where::LEFT;
+
+        // get the element which the cursor points to (trace the left side)     
+      if (cursor.idx < cursor.expr->elements.size())     
+        reference = expr->elements[cursor.idx].get ();
+      
+      // the cursor is at the end, so trace the right side of the last element. 
+      else if (cursor.idx >= cursor.expr->elements.size())
+        {
+          reference = expr->elements[cursor.expr->elements.size() - 1].get ();         
+          where = Where::RIGHT;
+        }
+      else
+        goto draw_elements;
+      
+
+      // draw the caret
+
+      // calculate its absolute position. Note that dx and dy already
+      // includes the parent expression and the parent element positions.
+      double x = dx +
+        reference->geometry.x + ((where==Where::RIGHT) ? reference->geometry.width : 0);
+
+      double y = dy +
+        reference->geometry.y;
+
+      // draw the line
+      cr->move_to(x, height - y);        
+      cr->line_to(x, height - (y + reference->geometry.height)); 
+      cr->stroke();  
+    }
+
+ draw_elements:
+    
   // draw elements
   for (size_t i = 0; i < expr->elements.size (); i++)
     {

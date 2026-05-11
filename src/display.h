@@ -109,6 +109,7 @@ struct FractionElement : Element
     numerator = std::make_unique<Expr> ();
     denominator = std::make_unique<Expr> ();
 
+    geometry.margin = 10;
   }
 
   void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
@@ -247,7 +248,7 @@ struct Expr
         Element *el = elements[i].get ();
 
         // remember that elements position are always relative to their expression.
-        double y = (geometry.height - el->geometry.height) / 2 - el->geometry.get_margin_Y();
+        double y = (geometry.height - el->geometry.height + el->geometry.get_margin_Y()) / 2;
 
         el->geometry.y = y;
       }
