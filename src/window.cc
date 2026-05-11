@@ -145,16 +145,15 @@ CalcWindow::CalcWindow ()
 void
 CalcWindow::apply_css_to_window ()
 {
-  // global css (window background + textview css
   auto css_data = Glib::ustring::compose ("window { background: %1; }"
                                           ".display-wrapper {"
-                                          "    background-color: white;"
+                                          "    background: white;"
                                           "}"
                                           "scrolledwindow {"
                                           "    background-color: #0F2B0F;"
                                           "    border-radius: 10px;"
-                                          "}",
-                                          WHITE);
+                                          "}"                
+                                          , WHITE);
 
   // buttons css
   for (const auto &css : buttons_css)

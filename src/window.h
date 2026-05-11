@@ -59,7 +59,8 @@ private:
     /* set a unique id to the button */
     auto id = Glib::ustring::compose ("btn_%1_%2", col, row);
     btn->set_name (id);
-
+    btn->add_css_class ("gc_btn");
+    
     /* color is only an alias for 'Glib::ustring' and is a possible value of
      * background*/
     auto css_data = Glib::ustring::compose (
@@ -69,8 +70,11 @@ private:
         "color: white;"
         "font-weight: bold;"
         "filter: brightness(125%%);" // add some brightness
-        "}",
-        id, color);
+        "}"
+        "#%1:hover {"
+        "  background: %3;"
+        "}"
+        , id, color, GC::BLACK);
     add_button_css (css_data);
 
     /* adapt to the windows size */
@@ -94,7 +98,8 @@ private:
     /* set a unique id to the button */
     auto id = Glib::ustring::compose ("btn_ctrl_%1_%2", col, row);
     btn->set_name (id);
-
+    btn->add_css_class ("gc_btn");
+    
     /* color is only an alias for 'Glib::ustring' and is a possible value of
      * background*/
     auto css_data = Glib::ustring::compose (
@@ -104,8 +109,11 @@ private:
                                             "color: white;"
                                             "font-weight: bold;"
                                             "filter: brightness(125%%);" // add some brightness
-                                            "}",
-                                            id, color);
+                                            "}"
+                                            "#%1:hover {"
+                                            "  background: %3;"
+                                            "}"
+                                            , id, color, GC::BLACK);
     add_button_css (css_data);
 
     /* adapt to the windows size */
