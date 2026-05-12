@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Álex Jiménez
+//
+// SPDX-License-Identifier: MIT
+
 #include "parser.h"
 
 #include <cmath>
