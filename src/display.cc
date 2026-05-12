@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: MIT
 
 #include "display.h"
+#include "parser.h"
+
 
 #ifdef DEBUG
 #include <iostream>
@@ -175,6 +177,52 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
   }
 
   
+  void
+  Display::move_up ()
+  {
+    // try to get the current element parent
+    if (cursor.parents.empty())
+      return;
+  
+    auto [parent, idx] = cursor.parents.top();
+    auto &elements = parent->elements;
+    
+    if (idx >= elements.size())
+      return;
+
+    auto el = elements[idx].get ();
+
+    // go to the numerator if we are in the denominator
+    if (el->type == ElementType::FRACTION && !cursor.data.in_numerator)
+      wrap_in_fraction_numerator ();
+
+    draw();
+    
+  }
+  void
+  Display::move_down ()
+  {
+    // try to get the current element parent
+    if (cursor.parents.empty())
+      return;
+  
+    auto [parent, idx] = cursor.parents.top();
+    auto &elements = parent->elements;
+    
+    if (idx >= elements.size())
+      return;
+
+    auto el = elements[idx].get ();
+
+    // go to the denominator if we are in the numerator
+    if (el->type == ElementType::FRACTION && cursor.data.in_numerator)
+      wrap_in_fraction_denominator ();
+
+    draw();
+  }
+
+
+  
   
 static void
 insert_element (std::unique_ptr<Element> el, Cursor cursor)
@@ -233,26 +281,19 @@ void Display::insert_fraction ()
   draw();
 }
 
-/* go to the current fraction denominator */
+/* go to the current fraction denominator.
+
+ Note: for each call of this function it is necessary to check
+if we are really in a fraction. Undefined behavior may occur if this is not done. */
 void
 Display::wrap_in_fraction_denominator ()
 {
   
-  // if we are in a fraction, we are in a nested expression
-  if (cursor.parents.empty())
-    return;
-  
   // get the fraction itself
   auto [parent, idx] = cursor.parents.top();
-  auto &elements = parent->elements;
-  if (idx >= elements.size())
-    return;
-  
-  auto el = elements[idx].get ();
 
-  // check we are really in a fraction
-  if (el->type != ElementType::FRACTION)
-    return;
+  auto &elements = parent->elements;
+  auto el = elements[idx].get ();
 
   FractionElement *fe = dynamic_cast<FractionElement *> (el);
 
@@ -261,26 +302,19 @@ Display::wrap_in_fraction_denominator ()
   cursor.idx = 0;
 }
 
-/* go to the current fraction numerator */
+/* go to the current fraction numerator.
+
+ Note: for each call of this function it is necessary to check
+if we are really in a fraction. Undefined behavior may occur if this is not done. */
 void
 Display::wrap_in_fraction_numerator ()
 {
-  // if we are in a fraction, we are in a nested expression
-  if (cursor.parents.empty())
-    return;
   
   // get the fraction itself
   auto [parent, idx] = cursor.parents.top();
   auto &elements = parent->elements;
-  if (idx >= elements.size())
-    return;
   
   auto el = elements[idx].get ();
-
-  // check we are really in a fraction
-  if (el->type != ElementType::FRACTION)
-    return;
-
 
   FractionElement *fe = dynamic_cast<FractionElement *> (el);
 
@@ -587,6 +621,11 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
   void
   Display::on_draw (const Cairo::RefPtr<Cairo::Context> &cr, int width, int height)
   {
+
+    Parser::MathExpr ast;
+    std::cout << Parser::parse (expr.get(), ast) << std::endl; 
+    std::cout << "-----------------" << std::endl;
+
     
     cr->set_line_width(2); 
 

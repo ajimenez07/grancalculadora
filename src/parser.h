@@ -11,113 +11,82 @@
 #include <string>
 #include <unordered_map>
 
+#include "display.h"
+
+
 namespace GC
 {
-
-struct Value;
-struct FunctionCall;
-
-struct Function
-{
-  std::string identifier;
-  Value (*handler) (FunctionCall);
-
-  Function (std::string identifier, Value (*handler) (FunctionCall))
-      : identifier (identifier), handler (handler)
+  
+  namespace Tokenizer
   {
+    
+    struct Token
+    {
+      enum class TokenType
+        {
+          PLUS, MINUS,
+          MUL, DIV,
+          OPEN_PAREN, CLOSE_PAREN,
+          NUMBER, FRACTION
+        };
+
+
+      TokenType type;
+      
+      union
+      {
+        double value; // in case it is a number
+        DisplayAst::FractionElement *fraction; // in case it is a fraction
+      } data;
+
+
+      // for code readability, avoid implicit conversions in constructors
+
+      explicit Token (TokenType type) : type(type) {}
+      
+      explicit Token (double val) : type(TokenType::NUMBER)
+      {
+        data.value = val;
+      }
+
+      explicit Token (DisplayAst::FractionElement *fe) : type(TokenType::FRACTION)
+      {
+        data.fraction = fe;
+      }
+    };
+    
+    Glib::ustring tokenize (DisplayAst::Expr *expr,
+                            std::vector<Token> &tokens);
   }
-};
 
-Function funcs[] = {
-
-  Function ("sqrt", nullptr), Function ("root", nullptr)
-};
-
-std::unordered_map<std::string, int> func_ids;
-
-enum class BinaryOp
-{
-  SUM,
-  SUB,
-  DIV,
-  MUL,
-  POW
-};
-
-enum class UnaryOp
-{
-  SUM,
-  SUB,
-  PAREN, // expr with parenthesis: (x + 2)
-};
-
-enum class ValueType
-{
-  DOUBLE,
-  INTEGER
-};
-
-struct UnaryExpr;
-struct BinaryExpr;
-struct Function;
-
-enum class OperandType
-{
-  LITERAL,           // A number
-  UNARY_EXPRESSION,  // a subexpression that is unary
-  BINARY_EXPRESSION, // a subexpression that is binary
-  FUNCTION
-};
-
-struct Value
-{
-  union
+  namespace Parser
   {
-    double d;
-    int i;
-  } number;
+    
+    struct MathExpr
+    {
+      virtual ~MathExpr() = default;
+    };
 
-  ValueType type;
-};
+    struct Literal : MathExpr
+    {
+      double value;
+    };
 
-struct Operand
-{
-  union
-  {
-    Value *val;
-    UnaryExpr *expr;
-    BinaryExpr *expr;
+    struct UnaryExpr : MathExpr
+    {
+      enum class Op { PLUS, MINUS, PAREN } op;
+      std::unique_ptr<MathExpr> operand;
+    };
 
-  } operand;
+    struct BinaryExpr : MathExpr
+    {
+      enum class Op { ADD, SUB, MUL, DIV } op;
+      std::unique_ptr<MathExpr> left;
+      std::unique_ptr<MathExpr> right;
+    };
 
-  OperandType type;
-};
-
-struct UnaryExpr
-{
-  Operand *operand;
-  UnaryOp op;
-};
-
-struct BinaryExpr
-{
-  Operand *left;
-  Operand *right;
-  BinaryOp op;
-};
-
-struct FunctionCall
-{
-  int id;
-  std::array<Operand, 2> args;
-};
-
-/* seems weird, but since an Operand can be a number or a function or
-   a subexpression, we can treat the whole input as a single expression*/
-using MathExpression = Operand;
-
-std::string parse (std::string &input, MathExpression &expr, size_t &last_pos);
+    Glib::ustring parse (DisplayAst::Expr *input_expr, MathExpr &ast);
+  }
 
 }
-
 #endif

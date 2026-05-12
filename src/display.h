@@ -11,7 +11,6 @@
 #include <string>
 #include <vector>
 #include <stack>
-
 #include <gtkmm.h>
 
 namespace GC
@@ -135,10 +134,11 @@ struct RootElement : Element
 struct SymbolElement : Element
 {
   std::string symbol;
+  Glib::ustring symbol_uc;
   
   static const int FONT_SIZE = 24;
   
-  SymbolElement (Glib::ustring c) : symbol (c)
+  SymbolElement (Glib::ustring c) : symbol (c), symbol_uc (c)
   {
     type = ElementType::SYMBOL;
     geometry.width = FONT_SIZE * c.size();
@@ -320,14 +320,16 @@ public:
     queue_draw();
   }
 
+  
   Display ()
   {
     expr = std::make_unique<DisplayAst::Expr>();
     cursor.expr = expr.get();
     cursor.idx = 0;
-    set_draw_func(sigc::mem_fun(*this, &Display::on_draw));
-    
+    set_draw_func(sigc::mem_fun(*this, &Display::on_draw));  
   }
+
+  
   
 protected:
   void on_draw (const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);  
