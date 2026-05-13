@@ -13,6 +13,10 @@
 #include <stack>
 #include <gtkmm.h>
 
+#ifdef DEBUG
+#include <iostream>
+#endif
+
 namespace GC
 {
 namespace DisplayAst
@@ -145,7 +149,9 @@ struct SymbolElement : Element
     geometry.height = FONT_SIZE;
     bool is_digit = (c.size() == 1 && c[0] >= '0' && c[0] <= '9');
 
-    geometry.marginX = (is_digit || c == "e" || c == "π") ? 0 : 10;
+    geometry.marginX = (is_digit || c == "e" || c == "π" || c == ".") ? 2 : 10;
+
+    geometry.marginY = 2;
   }
 
   void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
@@ -246,7 +252,6 @@ struct Expr
     for (size_t i=0;i < elements.size ();i++)
       {
         Element *el = elements[i].get ();
-
         // remember that elements position are always relative to their expression.
         double y = (geometry.height - el->geometry.height + el->geometry.get_margin_Y()) / 2;
 

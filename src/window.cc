@@ -97,7 +97,9 @@ CalcWindow::CalcWindow ()
   grid_add_button ("0", 0, 4, NAVY_BLUE, [this]() {
     m_display->insert_symbol("0");
   });
-  grid_add_button (",", 1, 4, LIGHT_BLUE, nullptr);
+  grid_add_button (".", 1, 4, LIGHT_BLUE, [this]() {
+    m_display->insert_symbol(".");
+  });
   grid_add_button ("e", 2, 4, LIGHT_BLUE, [this]() {
     m_display->insert_symbol("e");
   } );

@@ -65,17 +65,23 @@ namespace GC
     struct MathExpr
     {
       virtual ~MathExpr() = default;
+      enum class Type { LITERAL, UNARY, BINARY } type;
+      MathExpr (Type type) : type(type) {};
     };
 
     struct Literal : MathExpr
     {
       double value;
+      Literal () : MathExpr(MathExpr::Type::LITERAL) {}
+      
     };
 
     struct UnaryExpr : MathExpr
     {
       enum class Op { PLUS, MINUS, PAREN } op;
       std::unique_ptr<MathExpr> operand;
+
+      UnaryExpr () : MathExpr(MathExpr::Type::UNARY) {}
     };
 
     struct BinaryExpr : MathExpr
@@ -83,9 +89,17 @@ namespace GC
       enum class Op { ADD, SUB, MUL, DIV } op;
       std::unique_ptr<MathExpr> left;
       std::unique_ptr<MathExpr> right;
+
+      BinaryExpr () : MathExpr(MathExpr::Type::BINARY) {}
     };
 
-    Glib::ustring parse (DisplayAst::Expr *input_expr, MathExpr &ast);
+    MathExpr *
+    parse (GC::DisplayAst::Expr *input_expr);
+
+
+
+    std::unique_ptr<MathExpr>
+    parse (GC::DisplayAst::Expr *input_expr, Glib::ustring &msg);
   }
 
 }

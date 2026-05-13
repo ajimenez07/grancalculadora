@@ -90,7 +90,7 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
       // of leaving the whole fraction.
       if (el->type == ElementType::FRACTION)
         {
-          FractionElement *fe = dynamic_cast<FractionElement *>(fe);
+          FractionElement *fe = dynamic_cast<FractionElement *>(el);
           if (!cursor.data.in_numerator)
             {
               wrap_in_fraction_numerator();
@@ -135,7 +135,7 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
         // see 'Display::move_left' comments.
         if (el->type == ElementType::FRACTION)
           {
-            FractionElement *fe = dynamic_cast<FractionElement *>(fe);
+            FractionElement *fe = dynamic_cast<FractionElement *>(el);
             if (!cursor.data.in_numerator)
               {
                 wrap_in_fraction_numerator();
@@ -559,7 +559,7 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
           Expr *denominator = fe->denominator.get();
           Expr *numerator = fe->numerator.get();
 
-          double numerator_bottom = numerator->get_y() - numerator->get_margin();
+          double numerator_bottom = numerator->get_y() - numerator->get_margin ();
           double denominator_top = denominator->get_y() + denominator->get_height ()
             + denominator->get_margin();
 
@@ -608,8 +608,10 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
     
           // don't apply margins, they are applied by the expression.
           double x = dx + se->geometry.x + (g.width - extents.width) / 2;
-          double y = dy + se->geometry.y + (g.height - extents.height) / 2;
 
+          // if it is a dot, don't center it vertically.
+          double y = dy + se->geometry.y + ((se->symbol == ".") ?
+                                            extents.height : (g.height - extents.height) / 2);
           // show it
           cr->move_to(x, height - y);
           cr->show_text(se->symbol);
@@ -622,8 +624,10 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
   Display::on_draw (const Cairo::RefPtr<Cairo::Context> &cr, int width, int height)
   {
 
-    Parser::MathExpr ast;
-    std::cout << Parser::parse (expr.get(), ast) << std::endl; 
+    Glib::ustring msg;
+    auto ast = Parser::parse(expr.get(), msg);
+    
+    std::cout << msg << std::endl; 
     std::cout << "-----------------" << std::endl;
 
     
