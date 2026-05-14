@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "display.h"
-#include "parser.h"
+#include "eval.h"
 
 
 #ifdef DEBUG
@@ -625,9 +625,8 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
   {
 
     Glib::ustring msg;
-    auto ast = Parser::parse(expr.get(), msg);
-    
-    std::cout << msg << std::endl; 
+    double res = eval (expr.get(), msg);
+    std::cout << res << " " << msg << std::endl; 
     std::cout << "-----------------" << std::endl;
 
     

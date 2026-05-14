@@ -1,5 +1,5 @@
-src/gran_calculadora-display.o: src/display.cc /usr/include/stdc-predef.h \
- src/display.h /usr/include/c++/14/memory \
+src/gran_calculadora-eval.o: src/eval.cc /usr/include/stdc-predef.h \
+ src/eval.h src/display.h /usr/include/c++/14/memory \
  /usr/include/c++/14/bits/memoryfwd.h \
  /usr/include/x86_64-linux-gnu/c++/14/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/14/bits/os_defines.h \
@@ -1614,8 +1614,9 @@ src/gran_calculadora-display.o: src/display.cc /usr/include/stdc-predef.h \
  /usr/include/gtkmm-4.0/gtkmm/widgetpaintable.h \
  /usr/include/gtkmm-4.0/gtkmm/windowcontrols.h \
  /usr/include/gtkmm-4.0/gtkmm/windowhandle.h /usr/include/c++/14/iostream \
- src/eval.h
+ src/parser.h
 /usr/include/stdc-predef.h:
+src/eval.h:
 src/display.h:
 /usr/include/c++/14/memory:
 /usr/include/c++/14/bits/memoryfwd.h:
@@ -3354,4 +3355,4 @@ src/display.h:
 /usr/include/gtkmm-4.0/gtkmm/windowcontrols.h:
 /usr/include/gtkmm-4.0/gtkmm/windowhandle.h:
 /usr/include/c++/14/iostream:
-src/eval.h:
+src/parser.h:
