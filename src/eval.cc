@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Álex Jiménez
+//
+// SPDX-License-Identifier: MIT
+
 #include "eval.h"
 #include "parser.h"
 
