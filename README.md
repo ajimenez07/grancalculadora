@@ -1,12 +1,11 @@
 # Gran Calculadora (Great Calculator)
 
-> **Status**: Early development (~30% complete)  
+> **Status**: Early development (~80% complete)  
 > GUI is done, but in the future maybe more buttons are added (sin, cos, tan, etc.). Now the development is focused on the calculator display screen.
 
 Graphic calculator built with **GTKmm4**, **Cairo** and **C++** that supports fractions and roots in a more visual mode.
 
 <img src="screenshots/calculator.gif" alt="Calculator demo" width="400">
-
 
 ## What have been done
 
@@ -21,7 +20,6 @@ Button input functionality and left/right caret movement (referred to as "cursor
 - Finish the display system
 - Expression evaluation
 - Keyboard input
-- Advanced functions as trigonometric functions or equation solver.
 - Tests in Windows and Linux.
 
 ## Technologies
