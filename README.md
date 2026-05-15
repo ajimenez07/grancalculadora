@@ -1,9 +1,8 @@
 # Gran Calculadora (Great Calculator)
 
 > **Status**: Development almost finished (~80% complete). Once finished, no further updates are planned in the near future.
-> 
 
-Graphic calculator built with **GTKmm4**, **Cairo** and **C++** that supports fractions and roots in a more visual mode.
+Graphic calculator built with **GTKmm4**, **Cairo** and **C++** that supports fractions and powers in a more visual mode.
 
 <img src="screenshots/calculator.gif" alt="Calculator demo" width="400">
 
