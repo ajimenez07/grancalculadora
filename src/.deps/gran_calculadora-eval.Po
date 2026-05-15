@@ -1614,7 +1614,14 @@ src/gran_calculadora-eval.o: src/eval.cc /usr/include/stdc-predef.h \
  /usr/include/gtkmm-4.0/gtkmm/widgetpaintable.h \
  /usr/include/gtkmm-4.0/gtkmm/windowcontrols.h \
  /usr/include/gtkmm-4.0/gtkmm/windowhandle.h /usr/include/c++/14/iostream \
- src/parser.h
+ src/parser.h /usr/include/c++/14/iomanip /usr/include/c++/14/locale \
+ /usr/include/c++/14/bits/locale_facets_nonio.h \
+ /usr/include/x86_64-linux-gnu/c++/14/bits/time_members.h \
+ /usr/include/x86_64-linux-gnu/c++/14/bits/messages_members.h \
+ /usr/include/libintl.h /usr/include/c++/14/bits/codecvt.h \
+ /usr/include/c++/14/bits/locale_facets_nonio.tcc \
+ /usr/include/c++/14/bits/locale_conv.h \
+ /usr/include/c++/14/bits/quoted_string.h
 /usr/include/stdc-predef.h:
 src/eval.h:
 src/display.h:
@@ -3356,3 +3363,13 @@ src/display.h:
 /usr/include/gtkmm-4.0/gtkmm/windowhandle.h:
 /usr/include/c++/14/iostream:
 src/parser.h:
+/usr/include/c++/14/iomanip:
+/usr/include/c++/14/locale:
+/usr/include/c++/14/bits/locale_facets_nonio.h:
+/usr/include/x86_64-linux-gnu/c++/14/bits/time_members.h:
+/usr/include/x86_64-linux-gnu/c++/14/bits/messages_members.h:
+/usr/include/libintl.h:
+/usr/include/c++/14/bits/codecvt.h:
+/usr/include/c++/14/bits/locale_facets_nonio.tcc:
+/usr/include/c++/14/bits/locale_conv.h:
+/usr/include/c++/14/bits/quoted_string.h:

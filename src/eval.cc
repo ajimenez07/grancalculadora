@@ -5,8 +5,10 @@
 #include "eval.h"
 #include "parser.h"
 
-using namespace GC::Parser;
+#include <iomanip>
 
+using namespace GC::Parser;
+using namespace GC::DisplayAst;
 
 static inline double
 eval_expr (MathExpr *expr, bool &success);
@@ -30,25 +32,28 @@ static inline double
 eval_binary (BinaryExpr *expr, bool &success)
 {
   success = true;
-  double r = eval_expr (expr->left.get(), success);
-  double l = eval_expr (expr->right.get(), success);
+  double r = eval_expr (expr->right.get(), success);
+  double l = eval_expr (expr->left.get(), success);
  
   switch (expr->op)
     {
     case BinaryExpr::Op::ADD:
-      return r + l;
+      return l + r;
     case BinaryExpr::Op::SUB:
-      return r - l;
+      return l - r;
     case BinaryExpr::Op::MUL:  
-      return r * l;
+      return l * r;
     case BinaryExpr::Op::DIV:
       // return error on division by zero
-      if (l == 0)
+      if (r == 0)
         {
           success = false;
           return 0;
         }
-      return r / l;
+      return l / r;
+    case BinaryExpr::Op::POWER:
+      std::cout << std::pow(l, r) << std::endl;
+      return std::pow(l, r);
     }
   
   success = false;
@@ -83,8 +88,8 @@ eval_expr (MathExpr *expr, bool &success)
   return 0;
 }
 
-double
-GC::eval (GC::DisplayAst::Expr *input, Glib::ustring &msg)
+Expr *
+GC::eval (Expr *input, Glib::ustring &msg)
 {  
   auto expr = parse (input, msg);
   if (msg == "success")
@@ -96,7 +101,29 @@ GC::eval (GC::DisplayAst::Expr *input, Glib::ustring &msg)
           msg = "evaluation error";
           return 0;
         }
-      return res;
+
+      std::cout << "RESULT " << res << std::endl;
+
+      // format the result
+      std::ostringstream oss;
+      oss << std::fixed << std::setprecision(8) << res;
+      Glib::ustring formatted = oss.str();
+
+      Expr *result = new Expr;
+
+      auto &elements = result->elements;      
+      for (gunichar c : formatted)
+        {
+          Glib::ustring s;     
+          if (c == ',')
+            s += ".";
+          else
+            s += c;              
+          elements.push_back(std::make_unique<SymbolElement>(s));
+          
+        }
+      
+      return result;
     }
 
   return 0;

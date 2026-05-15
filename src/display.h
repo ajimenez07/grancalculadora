@@ -81,6 +81,7 @@ enum class ElementType
 {
   FRACTION,
   ROOT,
+  POWER,
   SYMBOL
 };
 
@@ -90,73 +91,19 @@ struct Element
   ElementType type;
   DrawGeometry geometry;
 
+  bool changed_size = false;
   /* call this method to update the geometry
      attributes of the element based on the new
      changes */
   virtual void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) {(void) cr;}
 
+  virtual void set_width (double w){(void)w;}
+  virtual void set_height (double h){(void)h;}
+  
   Element ()
   {
     
   }
-};
-
-struct FractionElement : Element
-{
-  std::unique_ptr<Expr> numerator;
-  std::unique_ptr<Expr> denominator;
-
-  FractionElement ()
-  {
-    type = ElementType::FRACTION;
-    numerator = std::make_unique<Expr> ();
-    denominator = std::make_unique<Expr> ();
-
-    geometry.margin = 10;
-  }
-
-  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
-};
-
-struct RootElement : Element
-{
-  std::unique_ptr<Expr> index;
-  std::unique_ptr<Expr> radicand;
-
-  RootElement ()
-  {
-    type = ElementType::ROOT;
-    index = std::make_unique<Expr> ();
-    radicand = std::make_unique<Expr> ();
-
-  }
-
-  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
-  
-};
-
-struct SymbolElement : Element
-{
-  std::string symbol;
-  Glib::ustring symbol_uc;
-  
-  static const int FONT_SIZE = 24;
-  
-  SymbolElement (Glib::ustring c) : symbol (c), symbol_uc (c)
-  {
-    type = ElementType::SYMBOL;
-    geometry.width = FONT_SIZE * c.size();
-    geometry.height = FONT_SIZE;
-    bool is_digit = (c.size() == 1 && c[0] >= '0' && c[0] <= '9');
-
-    geometry.marginX = (is_digit || c == "e" || c == "π" || c == ".") ? 2 : 10;
-
-    geometry.marginY = 2;
-  }
-
-  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
-  
-
 };
 
 struct Expr
@@ -164,6 +111,9 @@ struct Expr
   std::vector<std::unique_ptr<Element> > elements;
 
   DrawGeometry geometry;
+
+  // if true, don't update the  width or the height here
+  bool changed_size = false;
 
   /* with these four methods, the code is less verbose */
   double
@@ -180,6 +130,35 @@ struct Expr
 
   double
   get_margin () { return geometry.margin; }
+
+  void
+  set_width (double w)
+  {
+    double scale = w / geometry.width;
+    
+    geometry.width = w;
+
+    
+    for (size_t i=0;i<elements.size();i++)
+      elements[i]->set_width(elements[i]->geometry.width * scale);
+
+
+  }
+
+  void
+  set_height (double h)
+  {
+    double scale = h / geometry.height;
+    geometry.height = h;
+
+
+    for (size_t i=0;i<elements.size();i++)
+      elements[i]->set_height(elements[i]->geometry.height * scale);
+
+    
+  }
+  
+
   
   /* updates the total width of the expression. That is the sum
      of the width and margin of all subelements */
@@ -260,7 +239,7 @@ struct Expr
 
     // finally, update also the width
     update_width ();
- 
+   
     
   }
   Expr ()
@@ -269,6 +248,131 @@ struct Expr
     geometry.height = 20;
   }
 };
+
+
+  
+struct FractionElement : Element
+{
+  std::unique_ptr<Expr> numerator;
+  std::unique_ptr<Expr> denominator;
+
+  FractionElement ()
+  {
+    type = ElementType::FRACTION;
+    numerator = std::make_unique<Expr> ();
+    denominator = std::make_unique<Expr> ();
+
+    geometry.margin = 10;
+  }
+
+  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
+  void set_width (double w) override
+  {
+    double scale = w / geometry.width;
+    geometry.width = w;
+    numerator->set_width(numerator->get_width()*scale);
+    denominator->set_width(denominator->get_width()*scale);
+    
+  }
+  void set_height (double h) override
+  {
+    double scale = h / geometry.height;
+    geometry.height = h;
+    numerator->set_height(numerator->get_height()*scale);
+    denominator->set_height(denominator->get_height()*scale);
+  }
+
+
+};
+
+struct RootElement : Element
+{
+  std::unique_ptr<Expr> index;
+  std::unique_ptr<Expr> radicand;
+
+  RootElement ()
+  {
+    type = ElementType::ROOT;
+    index = std::make_unique<Expr> ();
+    radicand = std::make_unique<Expr> ();
+
+  }
+
+  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
+  
+};
+
+  struct PowerElement : Element
+  {
+    std::unique_ptr<Expr> base;
+    std::unique_ptr<Expr> exponent;
+
+    PowerElement ()
+    {
+      type = ElementType::POWER;
+      base = std::make_unique<Expr> ();
+      exponent = std::make_unique<Expr> ();
+    }
+
+    void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
+    void set_width (double w) override
+    {
+      double scale = w / geometry.width;
+      geometry.width = w;
+      base->set_width(base->get_width()*scale);
+      exponent->set_width(exponent->get_width()*scale);
+    
+    }
+    void set_height (double h) override
+    {
+      double scale = h / geometry.height;
+      geometry.height = h;
+      base->set_height(base->get_height()*scale);
+      exponent->set_height(exponent->get_height()*scale);
+    }
+
+
+
+  };
+  
+struct SymbolElement : Element
+{
+  std::string symbol;
+  Glib::ustring symbol_uc;
+  
+  int font_size = 24;
+  
+  SymbolElement (Glib::ustring c) : symbol (c), symbol_uc (c)
+  {
+    type = ElementType::SYMBOL;
+    geometry.width = font_size * c.size();
+    geometry.height = font_size;
+    bool is_digit = (c.size() == 1 && c[0] >= '0' && c[0] <= '9');
+
+    geometry.marginX = (is_digit || c == "e" || c == "π" || c == ".") ? 2 : 10;
+
+    geometry.marginY = 2;
+  }
+
+  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
+
+  void set_width (double w) override
+  {
+    geometry.width = w;
+    
+  }
+  void set_height (double h) override
+  {
+    double scale = h / geometry.height;
+    geometry.height = h;
+    font_size *= scale;
+    
+  }
+
+
+
+};
+
 
 struct Cursor
 {
@@ -290,6 +394,8 @@ struct Cursor
     // denominator
     bool in_numerator;
 
+    // in case we are in a power base
+    bool in_base;
   } data;
 
   // index of the current element
@@ -309,15 +415,23 @@ public:
   void insert_symbol (std::string n);
   void insert_root ();
   void insert_fraction ();
-
+  void insert_power ();
+  
   void wrap_in_fraction_denominator ();
   void wrap_in_fraction_numerator ();
   void wrap_in_root_index ();
   void wrap_in_root_radicand ();
+  void wrap_in_power_base ();
+  void wrap_in_power_exponent ();
+  
   void enter_root ();
+  void enter_power_left ();
+  void enter_power_right ();
   void enter_fraction_right ();
   void enter_fraction_left ();
 
+  void show_result();
+  
   void erase ();
   
   void draw ()

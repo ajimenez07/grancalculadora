@@ -27,7 +27,8 @@ static std::string token_type_to_string(Token::TokenType type) {
         case Token::TokenType::CLOSE_PAREN: return "CLOSE_PAREN";
         case Token::TokenType::NUMBER:      return "NUMBER";
         case Token::TokenType::FRACTION:    return "FRACTION";
-        default:                            return "UNKNOWN";
+    case Token::TokenType::POWER:    return "POWER";
+    default:                            return "UNKNOWN";
     }
 }
 
@@ -119,6 +120,10 @@ namespace GC
               if (el->type == ElementType::FRACTION)
                 tokens.push_back (Token(dynamic_cast<FractionElement *>(el)));
 
+              else if (el->type == ElementType::POWER)
+                tokens.push_back (Token(dynamic_cast<PowerElement *>(el)));
+
+
               // don't do a continue, we need to check if previously we were
               // reading a number token.
             }
@@ -152,31 +157,26 @@ namespace GC
     }
 
   }
- /*
-   Following BNF Notation:
-   
-   expr    ->
-     term
-   | term '+' expr
-   | term '-' expr
+  /*
+expr    -> term
+        | term '+' expr
+        | term '-' expr
 
-   term    ->
-     primary
-   | primary '*' term
-   | primary '/' term
+term    -> power
+        | power '*' term
+        | power '/' term
 
-   primary ->
-     operand
-   | '(' expr ')'
-   | '+' primary
-   | '-' primary
+power   -> primary
+        | primary '^' power      // asociatividad por derecha
 
-   operand ->
-   FRACTION
-   | NUMBER
+primary -> operand
+        | '(' expr ')'
+        | '+' primary
+        | '-' primary
 
- */
-  
+operand -> FRACTION
+        | NUMBER
+*/ 
   namespace Parser
   {
     
@@ -318,14 +318,50 @@ namespace GC
     }
 
     MathExpr *
+    parse_power (ParserCursor &cursor)
+    {
+      
+      Token tk = cursor.ahead();
+      
+      if (tk.type == Token::TokenType::POWER)
+        {
+          cursor.get();
+
+          Expr *base = tk.data.power->base.get();
+          Expr *exp = tk.data.power->exponent.get();
+         
+          MathExpr *parsed_base = parse (base);
+          MathExpr *parsed_exp = parse (exp);
+
+          if (!parsed_base || !parsed_exp)
+            {              
+              if (parsed_base) delete parsed_base;
+              if (parsed_exp) delete parsed_exp;
+              return nullptr;
+            }
+          // create the power
+          BinaryExpr *power = new BinaryExpr;
+          power->left = std::unique_ptr<MathExpr>(parsed_base);
+          power->right = std::unique_ptr<MathExpr>(parsed_exp);
+          power->op = BinaryExpr::Op::POWER;
+
+          return dynamic_cast<MathExpr *>(power);
+
+        }
+
+      // not invalid
+      return parse_primary (cursor);
+    }
+
+    MathExpr *
     parse_term (ParserCursor &cursor)
     {
-      MathExpr *primary = parse_primary (cursor);
-      if (!primary)
+      MathExpr *power = parse_power (cursor);
+      if (!power)
         return nullptr;
 
       if (!cursor.still_has())
-        return primary;
+        return power;
 
       // don't advance here, even with no tokens,
       // may we have a valid input
@@ -338,17 +374,17 @@ namespace GC
           // to update 'tk' variable.
           cursor.get();
 
-          // delete primary in failure
+          // delete power in failure
           MathExpr *term = parse_term(cursor);
           if (!term)
             {
-              delete primary;
+              delete power;
               return nullptr;
             }
 
           // create the binary expr and return it
           BinaryExpr *bin = new BinaryExpr;
-          bin->left = std::unique_ptr<MathExpr>(primary);
+          bin->left = std::unique_ptr<MathExpr>(power);
           bin->right = std::unique_ptr<MathExpr>(term);
           bin->op = (tk.type == Token::TokenType::MUL) ?
             BinaryExpr::Op::MUL : BinaryExpr::Op::DIV;
@@ -358,7 +394,7 @@ namespace GC
         }
 
       // not invalid input, is totally valid.
-      return primary;
+      return power;
     }
 
     // same structure as term

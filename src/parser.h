@@ -27,7 +27,7 @@ namespace GC
           PLUS, MINUS,
           MUL, DIV,
           OPEN_PAREN, CLOSE_PAREN,
-          NUMBER, FRACTION
+          NUMBER, FRACTION, POWER
         };
 
 
@@ -37,6 +37,7 @@ namespace GC
       {
         double value; // in case it is a number
         DisplayAst::FractionElement *fraction; // in case it is a fraction
+        DisplayAst::PowerElement *power; // in case it is a power
       } data;
 
 
@@ -53,6 +54,13 @@ namespace GC
       {
         data.fraction = fe;
       }
+
+      explicit Token (DisplayAst::PowerElement *pe) : type(TokenType::POWER)
+      {
+        data.power = pe;
+      }
+      
+
     };
     
     Glib::ustring tokenize (DisplayAst::Expr *expr,
@@ -86,7 +94,7 @@ namespace GC
 
     struct BinaryExpr : MathExpr
     {
-      enum class Op { ADD, SUB, MUL, DIV } op;
+      enum class Op { ADD, SUB, MUL, DIV, POWER } op;
       std::unique_ptr<MathExpr> left;
       std::unique_ptr<MathExpr> right;
 

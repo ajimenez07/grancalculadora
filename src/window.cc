@@ -103,7 +103,9 @@ CalcWindow::CalcWindow ()
   grid_add_button ("e", 2, 4, LIGHT_BLUE, [this]() {
     m_display->insert_symbol("e");
   } );
-  grid_add_button ("=", 3, 4, 2, 1, GREEN, nullptr);
+  grid_add_button ("=", 3, 4, 2, 1, GREEN, [this]() {
+    m_display->show_result();
+  });
 
   auto scrolledw = Gtk::make_managed<Gtk::ScrolledWindow>();
   
@@ -112,9 +114,11 @@ CalcWindow::CalcWindow ()
   m_display->set_vexpand (true);
 
   m_display->insert_fraction();
+  m_display->insert_power();
   m_display->insert_symbol("2");
-  m_display->insert_symbol("+");
+  m_display->wrap_in_power_exponent();
   m_display->insert_symbol("2");
+  m_display->move_right();
   m_display->wrap_in_fraction_numerator ();
   m_display->insert_symbol("3");
   m_display->insert_symbol("+");
@@ -124,7 +128,7 @@ CalcWindow::CalcWindow ()
   m_display->insert_symbol("2");
   m_display->wrap_in_fraction_numerator ();
   m_display->insert_symbol("3");
-
+  
 
   scrolledw->set_child (*m_display);
   scrolledw->set_policy (Gtk::PolicyType::AUTOMATIC,

@@ -12,6 +12,9 @@
 
 #include <algorithm>
 
+// caret size with no element as a reference
+#define DEFAULT_CARET_SIZE 24
+
 namespace GC
 {
 
@@ -37,6 +40,7 @@ FractionElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
   double den_total_height = denominator->get_height() + denominator->get_margin() * 2;
   double num_total_height = numerator->get_height() + numerator->get_margin() * 2;
 
+  
   geometry.width = width;
   geometry.height = num_total_height + den_total_height;
 
@@ -68,6 +72,30 @@ RootElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
   radicand->geometry.y = geometry.y;
 }
 
+  void
+  PowerElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
+  {
+    // calculate sizes
+    double original_height = exponent->get_height();
+    exponent->set_height(base->get_height() * 0.75);
+    exponent->set_width(exponent->get_width() * (exponent->get_height() / original_height));
+
+    // now, update geometry according to these sizes
+    exponent->update_geometry (cr);
+    base->update_geometry (cr);
+
+    geometry.width = base->get_width() + exponent->get_width() + base->get_margin() * 2
+      + exponent->get_margin() * 2;
+    geometry.height = base->get_height() + exponent->get_height() + base->get_margin() * 2
+      + exponent->get_margin() * 2;
+    // set positions
+    base->geometry.x = geometry.margin;
+    base->geometry.y = geometry.margin;
+    exponent->geometry.x = base->geometry.x + base->geometry.width + base->geometry.margin;
+    exponent->geometry.y = base->geometry.y + base->geometry.height + base->geometry.margin;
+  }
+
+  
 void
 SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
 {
@@ -75,7 +103,7 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
   cr->get_text_extents(symbol, extents);
     
   geometry.width = extents.width;
-  geometry.height = FONT_SIZE;
+  geometry.height = font_size;
 }
   
   void Display::move_left()
@@ -98,6 +126,19 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
               return;
             }
         }
+      // go to power base when moving to left
+      else if (el->type == ElementType::POWER)
+        {
+          PowerElement *pe = dynamic_cast<PowerElement *>(el);
+          {
+            if (!cursor.data.in_base)
+              {
+                wrap_in_power_base();
+                draw();
+                return;
+              }
+          }
+        }
       cursor.expr = parent;
 
       cursor.idx = idx;
@@ -115,6 +156,8 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
         enter_fraction_left();  
       else if (el->type == ElementType::ROOT) 
         enter_root();
+      else if (el->type == ElementType::POWER)
+        enter_power_left();
       else 
         cursor.idx--;  
 
@@ -147,6 +190,20 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
                 return;
               }
           }
+        // go to power exponent when moving to right
+      else if (el->type == ElementType::POWER)
+        {
+          PowerElement *pe = dynamic_cast<PowerElement *>(el);
+          {
+            if (cursor.data.in_base)
+              {
+                wrap_in_power_exponent();
+                draw();
+                return;
+              }
+          }
+        }
+
         cursor.expr = parent;
           // check boundaries
         if (idx + 1 <= cursor.expr->elements.size()) 
@@ -167,7 +224,9 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
         if (el->type == ElementType::FRACTION) 
           enter_fraction_right();  
         else if (el->type == ElementType::ROOT) 
-          enter_root();      
+          enter_root();
+        else if (el->type == ElementType::POWER)
+          enter_power_right();
         else  
           cursor.idx++;  
         
@@ -196,6 +255,10 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
     if (el->type == ElementType::FRACTION && !cursor.data.in_numerator)
       wrap_in_fraction_numerator ();
 
+    // go to the exponent if we are in a power
+    else if (el->type == ElementType::POWER && cursor.data.in_base)
+      wrap_in_power_exponent();
+    
     draw();
     
   }
@@ -217,6 +280,11 @@ SymbolElement::update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
     // go to the denominator if we are in the numerator
     if (el->type == ElementType::FRACTION && cursor.data.in_numerator)
       wrap_in_fraction_denominator ();
+
+    // go to the base if we are in a power
+    else if (el->type == ElementType::POWER && !cursor.data.in_base)
+      wrap_in_power_base();
+    
 
     draw();
   }
@@ -263,7 +331,7 @@ Display::insert_root ()
 
 }
 
-/* insert a fraction and set the cursor ino its denominator */
+/* insert a fraction and set the cursor into its denominator */
 void Display::insert_fraction ()
 {
   auto fe = std::make_unique<FractionElement>();
@@ -281,6 +349,26 @@ void Display::insert_fraction ()
   draw();
 }
 
+/* insert a power and set the cursor into its base */
+void Display::insert_power ()
+{
+  auto pe = std::make_unique<PowerElement>();
+
+  // save the raw ptr before std::move
+  auto *pe_ptr = pe.get();
+  insert_element(std::move(pe), cursor);
+
+  
+  cursor.parents.push({cursor.expr, cursor.idx});;
+  cursor.expr = pe_ptr->base.get();
+  cursor.data.in_base = true;
+  cursor.idx = 0;
+
+  draw();
+}
+
+
+  
 /* go to the current fraction denominator.
 
  Note: for each call of this function it is necessary to check
@@ -383,6 +471,44 @@ Display::wrap_in_root_radicand ()
   cursor.idx = 0;
 }
 
+/* go to the current power base */
+void
+Display::wrap_in_power_base ()
+{
+  auto [parent, idx] = cursor.parents.top();
+
+  auto &elements = parent->elements;
+  auto el = elements[idx].get ();
+
+  PowerElement *pe = dynamic_cast<PowerElement *> (el);
+
+  cursor.data.in_base = true;
+  cursor.expr = pe->base.get ();
+  cursor.idx = 0;  
+
+}
+
+/* go to the current power exponent */
+void
+Display::wrap_in_power_exponent ()
+{
+  auto [parent, idx] = cursor.parents.top();
+
+  auto &elements = parent->elements;
+  auto el = elements[idx].get ();
+
+  PowerElement *pe = dynamic_cast<PowerElement *> (el);
+
+  cursor.data.in_base = false;
+  cursor.expr = pe->exponent.get ();
+  cursor.idx = 0;  
+
+}
+
+
+
+
+
 /* go the current element if it is a root. It will enter
    into the radicand*/
 void
@@ -464,7 +590,56 @@ Display::enter_fraction_right ()
   enter_fraction (fe, cursor);
 }
 
+void
+Display::enter_power_right ()
+{
+  Expr *expr = cursor.expr;
+  auto &elements = expr->elements;
 
+  if (cursor.idx >= elements.size ())
+    return;
+ 
+  auto el = elements[cursor.idx].get ();
+  if (el->type != ElementType::POWER)
+    return;
+
+  PowerElement *pe = dynamic_cast<PowerElement *>(el);
+  if (cursor.idx + 1 < elements.size())
+    cursor.idx++;
+
+
+  cursor.parents.push({cursor.expr, cursor.idx});
+  cursor.expr = pe->base.get();
+  cursor.data.in_base = true;
+  cursor.idx = 0;
+
+}
+
+void
+Display::enter_power_left ()
+{
+  Expr *expr = cursor.expr;
+  auto &elements = expr->elements;
+
+  if (cursor.idx <= 0 || elements.size() == 0)
+    return;
+
+
+  auto el = elements[cursor.idx - 1].get ();
+  if (el->type != ElementType::POWER)
+    return;
+
+  PowerElement *pe = dynamic_cast<PowerElement *>(el);  
+  if (cursor.idx > 0)
+    cursor.idx--;
+
+  cursor.parents.push({cursor.expr, cursor.idx});
+  cursor.expr = pe->exponent.get();
+  cursor.data.in_base = false;
+  cursor.idx = 0;
+
+}
+ 
 
 
 void
@@ -502,7 +677,7 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
 
       // take the symbol height as a reference
       cr->move_to(x, height - y);        
-      cr->line_to(x, height - (y + SymbolElement::FONT_SIZE)); 
+      cr->line_to(x, height - (y + DEFAULT_CARET_SIZE)); 
       cr->stroke();
     }
   // we have elements
@@ -597,10 +772,29 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
                            dy+index->get_y(),
                            width, height, cursor);
         }
+      else if (el->type == ElementType::POWER)
+        {
+          PowerElement *pe = dynamic_cast<PowerElement *> (el);
+          Expr *base = pe->base.get();
+          Expr *exponent = pe->exponent.get();
+
+          draw_elements (cr, base,
+                         dx + pe->geometry.x + pe->base->get_x(),
+                         dy + pe->geometry.y + pe->base->get_y(),
+                         width, height, cursor);
+
+          draw_elements (cr, exponent,
+                         dx + pe->geometry.x + pe->exponent->get_x(),
+                         dy + pe->geometry.y + pe->exponent->get_y(),
+                         width, height, cursor);
+          
+
+        }
       else if (el->type == ElementType::SYMBOL)
         {
+              
           SymbolElement *se = dynamic_cast<SymbolElement *> (el);
-
+          cr->set_font_size(se->font_size);
           Cairo::TextExtents extents;
 
           // calculate the position
@@ -620,20 +814,34 @@ draw_elements (const Cairo::RefPtr<Cairo::Context> &cr, Expr *expr,
 
 }
 
+void
+Display::show_result()
+{
+  Glib::ustring msg;
+  Expr *res = eval (expr.get(), msg);
+
+  if (msg == "success")
+    {
+      expr = std::unique_ptr<Expr>(res);
+      cursor.expr = expr.get();
+      cursor.idx = 0;
+      // empty the parents
+      while (!cursor.parents.empty())
+        cursor.parents.pop();
+
+
+
+    }
+  queue_draw();
+
+}
   void
   Display::on_draw (const Cairo::RefPtr<Cairo::Context> &cr, int width, int height)
   {
 
-    Glib::ustring msg;
-    double res = eval (expr.get(), msg);
-    std::cout << res << " " << msg << std::endl; 
-    std::cout << "-----------------" << std::endl;
-
-    
     cr->set_line_width(2); 
 
     // set font size
-    cr->set_font_size(SymbolElement::FONT_SIZE);
     cr->select_font_face("Sans", Cairo::ToyFontFace::Slant::NORMAL, 
                          Cairo::ToyFontFace::Weight::NORMAL);
 
