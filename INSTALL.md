@@ -1,18 +1,27 @@
 ## Installation
 
-This software is in development and by now there are no
-releases available. However, you can build it by yourself
-using Autoconf:
+This software is a completed, functional project, but no pre-built releases are available. You can build it yourself using Autoconf.
+
+**Requirements:** GCC, Autoconf, and GTKmm (which includes Cairo).
+
+### Building on Linux
 
 ```bash
 autoreconf -i
-./configure CPPFLAGS="-DDEBUG"
+./configure
 make
 ./gran_calculadora
 ```
 
-You will need GCC, Autoconf and GTKmm installed.
+### A note on debugging
 
-If you are on Windows build it with Mingw, but take into account that no tests have been done yet on this OS.
+If you wish to build with debug symbols, use:
 
-**Note**: GTKmm already includes Cairo.
+```bash
+./configure CPPFLAGS="-DDEBUG"
+```
+
+### Building on other platforms
+
+*   **Windows**: You may build it with MinGW, but please note that the software has not been tested on this OS.
+*   **macOS**: No tests have been performed on this platform.
