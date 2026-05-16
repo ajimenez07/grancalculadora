@@ -31,9 +31,6 @@ public:
 private:
   /* main grid (buttons + textpane) */
   Gtk::Grid m_main_grid;
-
-  /* grid with the move buttons */
-  Gtk::Grid m_controls_grid;
   
   /* buttons grid */
   Gtk::Grid m_grid;
@@ -66,7 +63,7 @@ private:
     auto css_data = Glib::ustring::compose (
         "#%1 {"
         "background: %2;"
-        "font-size: 1.5em;"
+        "font-size: 1.2em;"
         "color: white;"
         "font-weight: bold;"
         "filter: brightness(125%%);" // add some brightness
@@ -87,47 +84,6 @@ private:
     if (callback) 
       btn->signal_clicked().connect(callback);
     
-  }
-
-  void
-  add_control_button (const Glib::ustring text, int col, int row, int width,
-                      int height, const GC::Color color, std::function<void()> callback)
-  {
-    auto btn = Gtk::make_managed<Gtk::Button>(text);
-
-    /* set a unique id to the button */
-    auto id = Glib::ustring::compose ("btn_ctrl_%1_%2", col, row);
-    btn->set_name (id);
-    btn->add_css_class ("gc_btn");
-    
-    /* color is only an alias for 'Glib::ustring' and is a possible value of
-     * background*/
-    auto css_data = Glib::ustring::compose (
-                                            "#%1 {"
-                                            "background: %2;"
-                                            "font-size: 1.2em;"
-                                            "color: white;"
-                                            "font-weight: bold;"
-                                            "filter: brightness(125%%);" // add some brightness
-                                            "}"
-                                            "#%1:hover {"
-                                            "  background: %3;"
-                                            "}"
-                                            , id, color, GC::BLACK);
-    add_button_css (css_data);
-
-    /* adapt to the windows size */
-    btn->set_hexpand (true);
-    btn->set_vexpand (false);
-    
-    /* add to the grid */
-    m_controls_grid.attach (*btn, col, row, width, height);
-
-    // add event handler
-    if (callback) 
-      btn->signal_clicked().connect(callback);
-    
-
   }
                      
   /*

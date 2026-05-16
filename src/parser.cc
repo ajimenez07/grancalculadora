@@ -44,7 +44,7 @@ static void print_token(Token token) {
     std::cout << "}" << std::endl;
 }
 #endif
-
+ 
 
 namespace GC
 {
@@ -439,65 +439,6 @@ operand -> FRACTION
       return term;
     }
 
-
-    static void
-    print_expr(MathExpr *expr)
-    {
-      if (expr->type == MathExpr::Type::LITERAL)
-        {
-          Literal *lit = dynamic_cast<Literal *>(expr);
-          std::cout << lit->value << " ";
-        }
-      else if (expr->type == MathExpr::Type::UNARY)
-        {
-          UnaryExpr *un = dynamic_cast<UnaryExpr *>(expr);
-          if (un->op == UnaryExpr::Op::PLUS)
-            std::cout << "+ ";
-          else if (un->op == UnaryExpr::Op::MINUS)
-            std::cout << "- ";
-          else
-            {
-              std::cout << "(";
-              print_expr (un->operand.get());
-              std::cout << ")";
-              return;
-            }
-            
-        }
-      else if (expr->type == MathExpr::Type::BINARY)
-        {
-          BinaryExpr *bin = dynamic_cast<BinaryExpr *>(expr);
-          char op;
-          if (bin->op == BinaryExpr::Op::ADD)
-            op = '+';
-          else if (bin->op == BinaryExpr::Op::SUB)
-            op = '-';
-          else if (bin->op == BinaryExpr::Op::MUL)
-            op = '*';
-          else 
-            op = '/';
-
-          if (op == '/')
-            {
-              std::cout << "(";
-              print_expr (bin->left.get());
-              std::cout << ")";
-             
-              std::cout << op << " ";
-              std::cout << "(";
-              print_expr (bin->right.get());
-              std::cout << ")";
-              return;
-            }
-          
-          print_expr (bin->left.get());   
-          std::cout << op << " ";
-          print_expr (bin->right.get());
-              
-
-        }
-    }
-
     MathExpr *
     parse (Expr *input_expr)
     {
@@ -505,17 +446,6 @@ operand -> FRACTION
       auto msg = Tokenizer::tokenize (input_expr, tokens);
 
       
-      std::cout << "..................." << std::endl;
-        
-      for (size_t i=0;i<tokens.size();i++)
-        {
-          print_token(tokens[i]);
-        }
-
-      std::cout << "..................." << std::endl;
-         
-      
-
       if (msg == "success")
           {
           ParserCursor cursor = ParserCursor(tokens);
@@ -535,14 +465,6 @@ operand -> FRACTION
     {
       std::vector<Tokenizer::Token> tokens;
       msg = Tokenizer::tokenize (input_expr, tokens);
-      /*
-      for (size_t i=0;i<tokens.size();i++)
-        {
-          print_token(tokens[i]);
-        }
-
-      std::cout << "..................." << std::endl;
-      */   
             
       if (msg == "success")
         {
@@ -550,10 +472,8 @@ operand -> FRACTION
           auto expr = parse_expr (cursor);
 
           if (expr)
-            {
-              print_expr (expr);
-              return std::unique_ptr<MathExpr>(expr);
-            }
+            return std::unique_ptr<MathExpr>(expr);
+            
           else
               msg = "syntax error";
               

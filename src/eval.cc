@@ -52,7 +52,6 @@ eval_binary (BinaryExpr *expr, bool &success)
         }
       return l / r;
     case BinaryExpr::Op::POWER:
-      std::cout << std::pow(l, r) << std::endl;
       return std::pow(l, r);
     }
   
@@ -101,8 +100,6 @@ GC::eval (Expr *input, Glib::ustring &msg)
           msg = "evaluation error";
           return 0;
         }
-
-      std::cout << "RESULT " << res << std::endl;
 
       // format the result
       std::ostringstream oss;
