@@ -31,12 +31,12 @@ public:
 private:
   /* main grid (buttons + textpane) */
   Gtk::Grid m_main_grid;
-  
+
   /* buttons grid */
   Gtk::Grid m_grid;
-  
+
   Display *m_display;
-  
+
   /* vector of CSS strings with the purpose
      of applying the buttons CSS after the windows is mapped */
   std::vector<Glib::ustring> buttons_css;
@@ -49,15 +49,16 @@ private:
    */
   void
   grid_add_button (const Glib::ustring text, int col, int row, int width,
-                   int height, const GC::Color color, std::function<void()> callback)
+                   int height, const GC::Color color,
+                   std::function<void ()> callback)
   {
-    auto btn = Gtk::make_managed<Gtk::Button>(text);
+    auto btn = Gtk::make_managed<Gtk::Button> (text);
 
     /* set a unique id to the button */
     auto id = Glib::ustring::compose ("btn_%1_%2", col, row);
     btn->set_name (id);
     btn->add_css_class ("gc_btn");
-    
+
     /* color is only an alias for 'Glib::ustring' and is a possible value of
      * background*/
     auto css_data = Glib::ustring::compose (
@@ -70,8 +71,8 @@ private:
         "}"
         "#%1:hover {"
         "  background: %3;"
-        "}"
-        , id, color, GC::BLACK);
+        "}",
+        id, color, GC::BLACK);
     add_button_css (css_data);
 
     /* adapt to the windows size */
@@ -81,18 +82,16 @@ private:
     /* add to the grid */
     m_grid.attach (*btn, col, row, width, height);
 
-    if (callback) 
-      btn->signal_clicked().connect(callback);
-    
+    if (callback)
+      btn->signal_clicked ().connect (callback);
   }
-                     
+
   /*
     Add a button but with the size of one cell of the grid as default.
    */
   void
   grid_add_button (const Glib::ustring text, int col, int row,
-                   const GC::Color color,
-                   std::function<void()> callback)
+                   const GC::Color color, std::function<void ()> callback)
   {
     grid_add_button (text, col, row, 1, 1, color, callback);
   }

@@ -12,8 +12,7 @@
 namespace GC
 {
 
-  GC::DisplayAst::Expr *
-  eval (GC::DisplayAst::Expr *input, Glib::ustring &msg);
+GC::DisplayAst::Expr *eval (GC::DisplayAst::Expr *input, Glib::ustring &msg);
 }
 
 #endif

@@ -7,11 +7,11 @@
 #ifndef GC_DISPLAY_H
 #define GC_DISPLAY_H
 
+#include <gtkmm.h>
 #include <memory>
+#include <stack>
 #include <string>
 #include <vector>
-#include <stack>
-#include <gtkmm.h>
 
 #ifdef DEBUG
 #include <iostream>
@@ -40,7 +40,7 @@ struct DrawGeometry
   double marginX = 0, marginY = 0, margin = 0;
 
   double scale = 1;
-  
+
   double
   get_margin_X ()
   {
@@ -58,7 +58,7 @@ struct DrawGeometry
 
     return marginY;
   }
-    
+
   DrawGeometry (double x, double y, double width, double height, double margin)
       : x (x), y (y), width (width), height (height), margin (margin) {};
 
@@ -83,16 +83,19 @@ struct Element
   /* call this method to update the geometry
      attributes of the element based on the new
      changes */
-  virtual void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) {(void) cr;}
+  virtual void
+  update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
+  {
+    (void)cr;
+  }
 
   void
-  set_scale(double scale)
+  set_scale (double scale)
   {
     geometry.scale = scale;
   }
 
-  Element ()
-  {    }
+  Element () {}
 };
 
 struct Expr
@@ -103,42 +106,57 @@ struct Expr
 
   /* with these four methods, the code is less verbose */
   double
-  get_width () { return geometry.width; }
+  get_width ()
+  {
+    return geometry.width;
+  }
 
   double
-  get_height () { return geometry.height; }
+  get_height ()
+  {
+    return geometry.height;
+  }
 
   double
-  get_x () { return geometry.x; }
+  get_x ()
+  {
+    return geometry.x;
+  }
 
   double
-  get_y () { return geometry.y; }
+  get_y ()
+  {
+    return geometry.y;
+  }
 
   double
-  get_margin () { return geometry.margin; }
+  get_margin ()
+  {
+    return geometry.margin;
+  }
 
   double
-  get_scale () { return geometry.scale; }
-  
+  get_scale ()
+  {
+    return geometry.scale;
+  }
+
   void
   set_scale (double scale)
   {
     geometry.scale = scale;
-    if (elements.size() == 0)
+    if (elements.size () == 0)
       return;
 
     for (size_t i = 0; i < elements.size (); i++)
-      elements[i]->set_scale(scale);
-
-
-
+      elements[i]->set_scale (scale);
   }
   /* updates the total width of the expression. That is the sum
      of the width and margin of all subelements */
   void
   update_width ()
   {
-    if (elements.size() == 0)
+    if (elements.size () == 0)
       {
         geometry.width = 20;
         return;
@@ -148,8 +166,8 @@ struct Expr
     for (size_t i = 0; i < elements.size (); i++)
       {
         Element *el = elements[i].get ();
-        
-        width += el->geometry.width + el->geometry.get_margin_X() * 2;
+
+        width += el->geometry.width + el->geometry.get_margin_X () * 2;
       }
 
     geometry.width = (width == 0) ? 10 : width;
@@ -171,14 +189,16 @@ struct Expr
     for (size_t i = 1; i < elements.size (); i++)
       {
         Element *el = elements[i].get ();
-        if (el->geometry.height + el->geometry.get_margin_Y() * 2
+        if (el->geometry.height + el->geometry.get_margin_Y () * 2
             > tallest->geometry.height + tallest->geometry.get_margin_Y () * 2)
 
           tallest = el;
       }
 
-    geometry.height = (tallest->geometry.height == 0) ? 10
-               : tallest->geometry.height + tallest->geometry.get_margin_Y () * 2;
+    geometry.height = (tallest->geometry.height == 0)
+                          ? 10
+                          : tallest->geometry.height
+                                + tallest->geometry.get_margin_Y () * 2;
   }
 
   /* update the geometry of all elements belonging
@@ -188,8 +208,8 @@ struct Expr
   void
   update_geometry (const Cairo::RefPtr<Cairo::Context> &cr)
   {
-    
-    // first, place the elements in the X axis. 
+
+    // first, place the elements in the X axis.
     // Note: also update its geometry to take advantage
     // of this iteration.
     double sep = 0;
@@ -199,43 +219,41 @@ struct Expr
         Element *el = elements[i].get ();
         // update geometry before doing numbers
         el->update_geometry (cr);
-        
+
         el->geometry.x = sep + el->geometry.get_margin_X ();
-        sep += el->geometry.width + el->geometry.get_margin_X() * 2;
+        sep += el->geometry.width + el->geometry.get_margin_X () * 2;
       }
 
-    // update_height calculates the necessary height for the expr to fit all elements.
+    // update_height calculates the necessary height for the expr to fit all
+    // elements.
     update_height ();
 
     // place the elements in the Y axis, aligning them in the center.
-    
-    for (size_t i=0;i < elements.size ();i++)
+
+    for (size_t i = 0; i < elements.size (); i++)
       {
         Element *el = elements[i].get ();
-        // remember that elements position are always relative to their expression.
+        // remember that elements position are always relative to their
+        // expression.
 
-        double y = (geometry.height - el->geometry.height + el->geometry.get_margin_Y()) / 2;
+        double y = (geometry.height - el->geometry.height
+                    + el->geometry.get_margin_Y ())
+                   / 2;
 
         el->geometry.y = y;
       }
 
     // finally, update also the width
     update_width ();
-   
-    
   }
-  Expr ()
-  {
-  }
+  Expr () {}
 };
 
-
-  
 struct FractionElement : Element
 {
   std::unique_ptr<Expr> numerator;
   std::unique_ptr<Expr> denominator;
-  
+
   FractionElement ()
   {
     type = ElementType::FRACTION;
@@ -246,40 +264,35 @@ struct FractionElement : Element
   }
 
   void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
- 
 };
-  struct PowerElement : Element
+struct PowerElement : Element
+{
+  std::unique_ptr<Expr> base;
+  std::unique_ptr<Expr> exponent;
+
+  PowerElement ()
   {
-    std::unique_ptr<Expr> base;
-    std::unique_ptr<Expr> exponent;
+    type = ElementType::POWER;
+    base = std::make_unique<Expr> ();
+    exponent = std::make_unique<Expr> ();
+  }
 
-    PowerElement ()
-    {
-      type = ElementType::POWER;
-      base = std::make_unique<Expr> ();
-      exponent = std::make_unique<Expr> ();
-     
+  void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
+};
 
-    }
-
-    void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
- 
-
-  };
-  
 struct SymbolElement : Element
 {
   std::string symbol;
   Glib::ustring symbol_uc;
-  
+
   int font_size = 24;
-  
+
   SymbolElement (Glib::ustring c) : symbol (c), symbol_uc (c)
   {
     type = ElementType::SYMBOL;
-    geometry.width = font_size * c.size();
+    geometry.width = font_size * c.size ();
     geometry.height = font_size;
-    bool is_digit = (c.size() == 1 && c[0] >= '0' && c[0] <= '9');
+    bool is_digit = (c.size () == 1 && c[0] >= '0' && c[0] <= '9');
 
     geometry.marginX = (is_digit || c == "e" || c == "π" || c == ".") ? 2 : 10;
 
@@ -287,11 +300,7 @@ struct SymbolElement : Element
   }
 
   void update_geometry (const Cairo::RefPtr<Cairo::Context> &cr) override;
-
- 
-
 };
-
 
 struct Cursor
 {
@@ -302,7 +311,7 @@ struct Cursor
      Being the parent the expr containing with an intermediary
     (power base/exponent or fraction numerator/denominator) the
   cursor expr. The size_t is the index of the current element in the expr*/
-  std::stack<std::pair<Expr *, size_t>> parents;
+  std::stack<std::pair<Expr *, size_t> > parents;
 
   union
   {
@@ -331,48 +340,46 @@ public:
   void insert_symbol (std::string n);
   void insert_fraction ();
   void insert_power ();
-  
+
   void wrap_in_fraction_denominator ();
   void wrap_in_fraction_numerator ();
   void wrap_in_power_base ();
   void wrap_in_power_exponent ();
-  
+
   void enter_power_left ();
   void enter_power_right ();
   void enter_fraction_right ();
   void enter_fraction_left ();
 
-  void show_result();
-  
+  void show_result ();
+
   void erase ();
 
-  void clear ();  
-  
-  void draw ()
+  void clear ();
+
+  void
+  draw ()
   {
-    queue_draw();
+    queue_draw ();
   }
 
-  
   Display ()
   {
-    expr = std::make_unique<DisplayAst::Expr>();
-    cursor.expr = expr.get();
+    expr = std::make_unique<DisplayAst::Expr> ();
+    cursor.expr = expr.get ();
     cursor.idx = 0;
-    set_draw_func(sigc::mem_fun(*this, &Display::on_draw));  
+    set_draw_func (sigc::mem_fun (*this, &Display::on_draw));
   }
 
-  
-  
 protected:
-  void on_draw (const Cairo::RefPtr<Cairo::Context> &cr, int width, int height);  
+  void on_draw (const Cairo::RefPtr<Cairo::Context> &cr, int width,
+                int height);
 
 private:
   DisplayAst::Cursor cursor;
   std::unique_ptr<DisplayAst::Expr> expr;
 
-  void
-  move_to_element ();
+  void move_to_element ();
 };
 }
 #endif
