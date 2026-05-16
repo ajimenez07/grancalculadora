@@ -13,14 +13,6 @@ make
 ./gran_calculadora
 ```
 
-### A note on debugging
-
-If you wish to build with debug symbols, use:
-
-```bash
-./configure CPPFLAGS="-DDEBUG"
-```
-
 ### Building on other platforms
 
 *   **Windows**: You may build it with MinGW, but please note that the software has not been tested on this OS.
